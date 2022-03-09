@@ -25,7 +25,7 @@ export class RelationResolver {
 
     const properties = this.getProperties(row, tableName)
 
-    properties.forEach(property => instance[property.new] = row[property.old])
+    properties.forEach(property => (instance[property.new] = row[property.old]))
 
     return instance
   }
@@ -38,16 +38,18 @@ export class RelationResolver {
 
   static oneToMany(flatData: any | any[], OneClass: any, ManyClass: any) {
     if (Array.isArray(flatData)) {
-      return Object.values(flatData.reduce((result, row) => {
-        result[row.id] = result[row.id] || this.resolveInstance(row, OneClass)
+      return Object.values(
+        flatData.reduce((result, row) => {
+          result[row.id] = result[row.id] || this.resolveInstance(row, OneClass)
 
-        const tableName = ManyClass.prototype.tableName.replace('Table', '')
+          const tableName = ManyClass.prototype.tableName.replace('Table', '')
 
-        if (!result[row.id][tableName]) result[row.id][tableName] = []
-        result[row.id][tableName].push(this.resolveInstance(row, ManyClass))
+          if (!result[row.id][tableName]) result[row.id][tableName] = []
+          result[row.id][tableName].push(this.resolveInstance(row, ManyClass))
 
-        return result
-      }, {}))
+          return result
+        }, {}),
+      )
     }
 
     const data = this.resolveInstance(flatData, OneClass)
@@ -62,4 +64,3 @@ export class RelationResolver {
   // TODO OneToOne
   // static oneToOne() {}
 }
-

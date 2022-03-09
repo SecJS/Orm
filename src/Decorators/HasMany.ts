@@ -13,4 +13,3 @@
 export const HasMany: PropertyDecorator = (model, relation?) => {
   return (target, property: string) => {}
 }
-

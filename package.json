@@ -25,12 +25,11 @@
     "@secjs/contracts": "1.2.1",
     "@secjs/env": "1.2.8",
     "@secjs/exceptions": "1.0.4",
-    "@secjs/utils": "1.5.9",
+    "@secjs/utils": "1.7.6",
     "@types/jest": "27.0.1",
     "@types/knex": "0.16.1",
     "@types/mime-types": "2.1.1",
     "@types/node": "14.17.0",
-    "@types/pluralize": "^0.0.29",
     "@typescript-eslint/eslint-plugin": "4.31.0",
     "@typescript-eslint/parser": "4.31.0",
     "commitizen": "4.2.4",
@@ -167,6 +166,6 @@
     }
   },
   "dependencies": {
-    "pluralize": "^8.0.0"
+    "@secjs/database": "1.0.1"
   }
 }

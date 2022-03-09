@@ -11,15 +11,36 @@
 export interface ColumnOptions {
   isPrimary?: boolean
   columnName?: string
-  serialize?: any
-  serializeAs?: any
-  prepare?: (value: any) => void
-  consume?: (value: any) => void
+  // serialize?: any
+  // serializeAs?: any
+  // prepare?: (value: any) => void
+  // consume?: (value: any) => void
 }
 
 /**
  * Define database column
  */
-export const Column: PropertyDecorator = (options?: ColumnOptions) => {
-  return (target, property: string) => {}
+export function Column(options?: ColumnOptions): PropertyDecorator {
+  return (target, propertyKey: string | symbol) => {
+    options = Object.assign(
+      {},
+      {
+        isPrimary: false,
+        columnName: propertyKey,
+      },
+      options,
+    )
+
+    let columns = Reflect.getMetadata('model:columns', target.constructor)
+
+    if (!columns) {
+      columns = []
+
+      Reflect.defineMetadata('model:columns', [], target.constructor)
+    }
+
+    columns.push(options)
+
+    Reflect.defineMetadata('model:columns', columns, target.constructor)
+  }
 }

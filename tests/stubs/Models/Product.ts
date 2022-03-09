@@ -9,13 +9,24 @@
 
 import { Model } from '../../../src/Model'
 import { ProductDetail } from './ProductDetail'
+import { Column } from '../../../src/Decorators/Column'
 
 export class Product extends Model {
-  static table = 'products'
+  protected table = 'products'
+  protected connection = 'default'
 
-  id: number
-  name: string
-  createdAt: Date
-  updatedAt: Date
-  productDetails: ProductDetail[]
+  @Column()
+  public id: number
+
+  @Column()
+  public name: string
+
+  @Column()
+  public createdAt: Date
+
+  @Column()
+  public updatedAt: Date
+
+  @Column()
+  public productDetails: ProductDetail[]
 }
