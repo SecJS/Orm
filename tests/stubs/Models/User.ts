@@ -7,15 +7,13 @@
  * file that was distributed with this source code.
  */
 
-import { User } from './User'
+import { Product } from './Product'
 import { Model } from '../../../src/Model'
-import { ProductDetail } from './ProductDetail'
 import { Column } from '../../../src/Decorators/Column'
-import { HasMany } from '../../../src/Decorators/HasMany'
-import { BelongsTo } from '../../../src/Decorators/BelongsTo'
+import { HasOne } from '../../../src/Decorators/HasOne'
 
-export class Product extends Model {
-  static table = 'products'
+export class User extends Model {
+  static table = 'users'
 
   @Column()
   public id: number
@@ -24,7 +22,7 @@ export class Product extends Model {
   public name: string
 
   @Column()
-  public quantity: string
+  public email: string
 
   @Column()
   public createdAt: Date
@@ -32,9 +30,8 @@ export class Product extends Model {
   @Column()
   public updatedAt: Date
 
-  @BelongsTo(User)
-  public user: User
-
-  @HasMany(ProductDetail)
-  public productDetails: ProductDetail[]
+  @HasOne(Product)
+  public product: Product
 }
+
+

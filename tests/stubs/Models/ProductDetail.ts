@@ -9,14 +9,27 @@
 
 import { Product } from './Product'
 import { Model } from '../../../src/Model'
+import { Column } from '../../../src/Decorators/Column'
+import { BelongsTo } from '../../../src/Decorators/BelongsTo'
 
 export class ProductDetail extends Model {
   static table = 'product_details'
 
-  id: number
-  detail: string
-  createdAt: Date
-  updatedAt: Date
-  productId: number
-  product: Product
+  @Column()
+  public id: number
+
+  @Column()
+  public detail: string
+
+  @Column()
+  public createdAt: Date
+
+  @Column()
+  public updatedAt: Date
+
+  @Column()
+  public productId: number
+
+  @BelongsTo(Product)
+  public product: Product
 }

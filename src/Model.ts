@@ -8,35 +8,66 @@
  */
 
 import { String } from '@secjs/utils'
-import { Database, DatabaseContract, JoinType } from '@secjs/database'
+import { DatabaseContract } from '@secjs/database'
+import { ColumnOptions } from './Decorators/Column'
+import { ModelFactory } from './Utils/ModelFactory'
+import { DatabaseConnection } from './DatabaseConnection'
+import { InternalServerException } from '@secjs/exceptions'
+import { Product } from '../tests/stubs/Models/Product'
 
 type OmittedModelMethods = keyof Model
 type ModelPropsKeys<This> = keyof Omit<This, OmittedModelMethods>
 type ModelPropsRecord<This> = Record<ModelPropsKeys<This>, any>
 
 export abstract class Model {
-  private DB: DatabaseContract
+  private DB: DatabaseContract = new DatabaseConnection().getDb()
 
-  protected async _load() {
-    this.DB = await new Database().connection(this.connection).connect()
+  private relations = this.getMetadata('model:relations')
+  private columns: ColumnOptions[] = this.getMetadata('model:columns')
 
-    this.DB.buildTable(this.table)
+  protected connection = 'default'
+  protected table = String.toSnakeCase(String.pluralize(this.constructor.name))
+
+  private getMetadata(key: string) {
+    const metadata = Reflect.getMetadata(key, this.constructor)
+
+    if (!metadata) {
+      return []
+    }
+
+    return metadata
   }
+
+  constructor() {
+    // const columnNames = this.columns.map(column => `${column.columnName} as ${this.table}.${column.columnName}`)
+    // const columnNames = this.columns.map(column => `${column.columnName}`)
+
+    // this.DB.buildTable(this.table)
+  }
+
 
   // protected abstract primaryKey = 'id'
   // protected abstract timestamps = false
   // protected abstract incrementing = true
   // protected abstract incrementingType = 'string'
 
-  protected connection = 'default'
-  protected table = String.toSnakeCase(String.pluralize(this.constructor.name))
-
   async find() {
-    return this.DB.find()
+    const data = await this.DB
+      .buildTable(this.table)
+      .find()
+
+    // console.log(ObjectTranspiler.createDictionaryFromRow(data))
+
+    return data
   }
 
   async findMany() {
-    return this.DB.findMany()
+    let flatData = await this.DB
+      .buildTable(this.table)
+      .findMany()
+
+    // return ModelFactory.create(flatData, this) as this[]
+    return flatData
   }
 
   async paginate(page: number, limit: number, resourceUrl = '/') {
@@ -64,17 +95,17 @@ export abstract class Model {
 
   // Builder Methods
 
-  select(...columns: ModelPropsKeys<this>[]): this {
-    this.DB.buildSelect(...(columns as string[]))
-
-    return this
-  }
-
-  distinct(...columns: ModelPropsKeys<this>[]): this {
-    this.DB.buildDistinct(...(columns as string[]))
-
-    return this
-  }
+  // select(...columns: ModelPropsKeys<this>[]): this {
+  //   this.DB.buildSelect(...(columns as string[]))
+  //
+  //   return this
+  // }
+  //
+  // distinct(...columns: ModelPropsKeys<this>[]): this {
+  //   this.DB.buildDistinct(...(columns as string[]))
+  //
+  //   return this
+  // }
 
   where(statement: string | ModelPropsRecord<this>, value?: any): this {
     this.DB.buildWhere(statement, value)
@@ -82,13 +113,26 @@ export abstract class Model {
     return this
   }
 
-  join(
-    tableName: string,
-    column1: string,
-    column2: string,
-    joinType?: JoinType,
-  ): this {
-    this.DB.buildJoin(tableName, column1, column2, joinType)
+  join(relationName: string): this {
+    const relation = this.relations.find(relation => relation.columnName === relationName)
+
+    if (!relation) {
+      throw new InternalServerException(`Relation ${relationName} not found in model ${this.constructor.name}`)
+    }
+
+    let { model, foreignKey } = relation
+
+    let relationColumns = Reflect.getMetadata('model:columns', model)
+
+    relationColumns = relationColumns.map(column => `${model.table}.${column.columnName} as ${model.table}.${column.columnName}`)
+    const modelColumns = this.columns.map(column => `${this.table}.${column.columnName} as ${this.table}.${column.columnName}`)
+
+    const primaryKey = `${this.table}.id`
+    foreignKey = `${model.table}.${foreignKey}`
+
+    this.DB
+      .buildJoin(model.table, primaryKey, '=', foreignKey, 'leftJoin')
+      .buildSelect(...modelColumns, ...relationColumns)
 
     return this
   }
@@ -105,11 +149,11 @@ export abstract class Model {
     return this
   }
 
-  having(column: string, operator: string, value: string): this {
-    this.DB.buildHaving(column, operator, value)
-
-    return this
-  }
+  // having(column: string, operator: string, value: string): this {
+  //   this.DB.buildHaving(column, operator, value)
+  //
+  //   return this
+  // }
 
   skip(number: number): this {
     this.DB.buildSkip(number)

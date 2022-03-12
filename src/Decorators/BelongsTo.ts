@@ -7,9 +7,35 @@
  * file that was distributed with this source code.
  */
 
+export interface BelongsToOptions {
+  model?: any
+  foreignKey?: string
+  columnName?: string
+  relationType?: string
+}
+
 /**
  * Define BelongsTo relationship
  */
-export const BelongsTo: PropertyDecorator = (model, relation?) => {
-  return (target, property: string) => {}
+export function BelongsTo(model): PropertyDecorator {
+  return (target, propertyKey: string | symbol) => {
+    const options: BelongsToOptions = {}
+
+    let relations = Reflect.getMetadata('model:relations', target.constructor)
+
+    if (!relations) {
+      relations = []
+
+      Reflect.defineMetadata('model:relations', [], target.constructor)
+    }
+
+    options.model = model
+    options.foreignKey = 'id'
+    options.relationType = 'belongsTo'
+    options.columnName = String(propertyKey)
+
+    relations.push(options)
+
+    Reflect.defineMetadata('model:relations', relations, target.constructor)
+  }
 }
