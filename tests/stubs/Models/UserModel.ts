@@ -16,7 +16,7 @@ export class UserModel extends Model {
   static table = 'users'
   static primaryKey = 'idPrimary'
 
-  @Column()
+  @Column({ columnName: 'id' })
   public idPrimary: number
 
   @Column()

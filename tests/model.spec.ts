@@ -75,7 +75,6 @@ describe('\n Model Class', () => {
     await Promise.all(promises)
   })
 
-  // TODO Add options for relations to fix this test
   it('should return the data from Product model with user and productDetails included', async () => {
     const product = new Product()
 
@@ -85,11 +84,13 @@ describe('\n Model Class', () => {
       .findMany()
 
     expect(models[0].id).toBe(1)
+    expect(models[0].userModelId).toBe(1)
     expect(models[0].name).toBe('iPhone 10')
     expect(models[0].user.idPrimary).toBe(1)
     expect(models[0].user.name).toBe('Victor')
     expect(models[0].productDetails[0].id).toBe(1)
     expect(models[0].productDetails[0].detail).toBe('128 GB')
+    expect(models[0].productDetails[0].productModelId).toBe(1)
   })
 
   afterEach(async () => {

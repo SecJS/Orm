@@ -10,6 +10,7 @@
 import { Is } from '@secjs/utils'
 import { DatabaseContract } from '@secjs/database'
 import { DatabaseConnection } from '../DatabaseConnection'
+import { InternalServerException } from '@secjs/exceptions'
 import { RelationContract } from '../Contracts/RelationContract'
 
 export class ModelFactory {
@@ -43,7 +44,8 @@ export class ModelFactory {
     const model = relation.model
     const foreignKey = relation.foreignKey
     const primaryKey = relation.primaryKey
-    const columnName = relation.columnName
+    const propertyName = relation.propertyName
+    const columnDictionary = model.columnDictionary
 
     // Where in approach
     // if (Is.Array(data)) {
@@ -72,7 +74,7 @@ export class ModelFactory {
     //   return data
     // }
 
-    data[columnName] = null
+    data[propertyName] = null
 
     const modelData = await this.DB
       .buildTable(model.table)
@@ -80,9 +82,15 @@ export class ModelFactory {
       .find()
 
     if (modelData) {
-      data[columnName] = new model()
+      data[propertyName] = new model()
 
-      Object.keys(modelData).forEach(key => data[columnName][key] = modelData[key])
+      Object.keys(modelData).forEach(key => {
+        if (!columnDictionary[key]) {
+          throw new InternalServerException(`The field ${key} has not been mapped in some of your @Column annotation in ${model.name} Model`)
+        }
+
+        data[propertyName][columnDictionary[key]] = modelData[key]
+      })
     }
 
     return data
@@ -92,9 +100,10 @@ export class ModelFactory {
     const model = relation.model
     const foreignKey = relation.foreignKey
     const primaryKey = relation.primaryKey
-    const columnName = relation.columnName
+    const propertyName = relation.propertyName
+    const columnDictionary = model.columnDictionary
 
-    data[columnName] = []
+    data[propertyName] = []
 
     const modelsData = await this.DB
       .buildTable(model.table)
@@ -104,34 +113,42 @@ export class ModelFactory {
     modelsData.forEach(modelData => {
       const modelRelation = new model()
 
-      Object.keys(modelData).forEach(key => modelRelation[key] = modelData[key])
+      Object.keys(modelData).forEach(key => {
+        if (!columnDictionary[key]) {
+          throw new InternalServerException(`The field ${key} has not been mapped in some of your @Column annotation in ${model.name} Model`)
+        }
 
-      data[columnName].push(modelRelation)
+        modelRelation[columnDictionary[key]] = modelData[key]
+      })
+
+      data[propertyName].push(modelRelation)
     })
 
     return data
   }
 
   private static async belongsTo(data: any, relation: RelationContract): Promise<any> {
-    const model = relation.model
-    const foreignKey = relation.foreignKey
-    const primaryKey = relation.primaryKey
-    const columnName = relation.columnName
-
-    data[columnName] = null
-
-    const modelData = await this.DB
-      .buildTable(model.table)
-      .buildWhere(foreignKey, data[primaryKey])
-      .find()
-
-    if (modelData) {
-      data[columnName] = new model()
-
-      Object.keys(modelData).forEach(key => data[columnName][key] = modelData[key])
-    }
-
-    return data
+    // const model = relation.model
+    // const foreignKey = relation.foreignKey
+    // const primaryKey = relation.primaryKey
+    // const propertyName = relation.propertyName
+    // const columnDictionary = model.columnDictionary
+    //
+    // data[propertyName] = null
+    //
+    // const modelData = await this.DB
+    //   .buildTable(model.table)
+    //   .buildWhere(foreignKey, data[primaryKey])
+    //   .find()
+    //
+    // if (modelData) {
+    //   data[propertyName] = new model()
+    //
+    //   Object.keys(modelData).forEach(key => data[propertyName][columnDictionary[key]] = modelData[key])
+    // }
+    //
+    // return data
+    return this.hasOne(data, relation)
   }
 
   // TODO Implement

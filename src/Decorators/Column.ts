@@ -7,16 +7,7 @@
  * file that was distributed with this source code.
  */
 
-// TODO Implement
-export interface ColumnOptions {
-  isPrimary?: boolean
-  columnName?: string
-  propertyName?: string,
-  // serialize?: any
-  // serializeAs?: any
-  // prepare?: (value: any) => void
-  // consume?: (value: any) => void
-}
+import { ColumnOptions } from '../Contracts/ColumnOptions'
 
 /**
  * Define database column

@@ -7,12 +7,9 @@
  * file that was distributed with this source code.
  */
 
-export interface RelationContract {
-  model?: any
-  primaryKey?: string
-  foreignKey?: string
-  relationType?: string
-  isIncluded?: boolean
-  propertyName?: string
+export interface ColumnContract {
+  isPrimary?: boolean
+  columnName?: string
+  propertyName?: string,
 }
 

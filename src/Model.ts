@@ -9,10 +9,10 @@
 
 import { String } from '@secjs/utils'
 import { DatabaseContract } from '@secjs/database'
-import { ColumnOptions } from './Decorators/Column'
 import { ModelFactory } from './Utils/ModelFactory'
 import { DatabaseConnection } from './DatabaseConnection'
 import { InternalServerException } from '@secjs/exceptions'
+import { ColumnContract } from './Contracts/ColumnContract'
 import { RelationContract } from './Contracts/RelationContract'
 import { ModelPropsKeys, ModelPropsRecord, ModelContract } from './Contracts/ModelContract'
 
@@ -29,7 +29,10 @@ export abstract class Model implements ModelContract {
   static primaryKey: string
 
   /** All the model columns mapped */
-  static columns: ColumnOptions[]
+  static columns: ColumnContract[]
+  /** Dictionary to specify the column name in database to class property */
+  static columnDictionary: Record<string, string>
+
   /** All the model relations mapped */
   static relations: RelationContract[]
 
@@ -47,16 +50,19 @@ export abstract class Model implements ModelContract {
     this.defineStatic('columns', [])
     this.defineStatic('relations', [])
     this.defineStatic('primaryKey', 'id')
+    this.defineStatic('columnDictionary', {})
     this.defineStatic('connection', 'default')
+    this.defineStatic('relationDictionary', {})
     this.defineStatic('table', String.toSnakeCase(String.pluralize(this.name)))
   }
 
-  static addColumn(column: ColumnOptions) {
+  static addColumn(column: ColumnContract) {
     if (this.primaryKey === column.columnName) {
       column.isPrimary = true
     }
 
     this.columns.push(column)
+    this.columnDictionary[column.columnName] = column.propertyName
   }
 
   static addRelation(relation: RelationContract) {
@@ -133,7 +139,13 @@ export abstract class Model implements ModelContract {
     flatData.forEach(data => {
       const model = new this.class()
 
-      Object.keys(data).forEach(key => model[key] = data[key])
+      Object.keys(data).forEach(key => {
+        if (!this.class.columnDictionary[key]) {
+          throw new InternalServerException(`The field ${key} has not been mapped in some of your @Column annotation in ${this.class.name} Model`)
+        }
+
+        model[this.class.columnDictionary[key]] = data[key]
+      })
 
       modelData.push(model)
     })
@@ -191,9 +203,7 @@ export abstract class Model implements ModelContract {
   }
 
   includes(relationName: ModelPropsKeys<this>): this {
-    const self: any = this.constructor
-
-    const relation = this.class.relations.find(relation => relation.columnName === relationName)
+    const relation = this.class.relations.find(relation => relation.propertyName === relationName)
 
     if (!relation) {
       throw new InternalServerException(`Relation ${relationName} not found in model ${this.constructor.name}`)

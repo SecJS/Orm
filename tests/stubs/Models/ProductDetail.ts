@@ -25,8 +25,8 @@ export class ProductDetail extends Model {
   @Column()
   public updatedAt: Date
 
-  @Column()
-  public productId: number
+  @Column({ columnName: 'productId' })
+  public productModelId: number
 
   @BelongsTo(() => Product)
   public product: Product

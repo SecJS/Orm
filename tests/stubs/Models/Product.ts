@@ -30,10 +30,10 @@ export class Product extends Model {
   @Column()
   public updatedAt: Date
 
-  @Column()
-  public userId: number
+  @Column({ columnName: 'userId' })
+  public userModelId: number
 
-  @BelongsTo(() => UserModel)
+  @BelongsTo(() => UserModel, { primaryKey: 'userModelId' })
   public user: UserModel
 
   @HasMany(() => ProductDetail)
