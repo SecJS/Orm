@@ -14,5 +14,6 @@ export interface RelationContract {
   columnName?: string
   relationType?: string
   isIncluded?: boolean
+  propertyName?: string
 }
 

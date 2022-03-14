@@ -19,8 +19,10 @@ export function HasMany(model): PropertyDecorator {
     // Primary key will be defined inside addRelation method
     const relation: RelationContract = {
       model,
+      isIncluded: false,
       relationType: 'hasMany',
       columnName: String(propertyKey),
+      propertyName: String(propertyKey),
       foreignKey: `${MainModel.name.toLowerCase()}Id`
     }
 

@@ -10,13 +10,20 @@
 import { Model } from '../Model'
 import { PaginatedResponse } from '@secjs/utils'
 
+/** Omit all the methods from Model class. Example: 'find' | 'findMany' */
 export type OmittedModelMethods = keyof Model
+/** Type with only the keys from This. Example: 'id' | 'name' */
 export type ModelPropsKeys<This> = keyof Omit<This, OmittedModelMethods>
+/** Type of Record from This. Example: Record<'id' | 'name', any> */
 export type ModelPropsRecord<This> = Record<ModelPropsKeys<This>, any>
 
 export interface ModelContract {
+  /**
+   * Database Methods
+   */
+
   /** Transform the actual data inside the ORM Instance to a JSON */
-  toJSON(): Partial<this>
+  toJSON(): ModelPropsRecord<this>
 
   /** Find one data and return the ORM Instance */
   find(): Promise<this>
@@ -42,7 +49,9 @@ export interface ModelContract {
   /** Delete the model */
   delete(): Promise<void>
 
-  // Builder Methods
+  /**
+   * Builder Methods
+   */
 
   /** Add a where clause for concrete methods */
   where(where: ModelPropsRecord<this>): this

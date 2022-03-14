@@ -11,6 +11,7 @@
 export interface ColumnOptions {
   isPrimary?: boolean
   columnName?: string
+  propertyName?: string,
   // serialize?: any
   // serializeAs?: any
   // prepare?: (value: any) => void
@@ -29,6 +30,7 @@ export function Column(options?: ColumnOptions): PropertyDecorator {
       {
         isPrimary: false,
         columnName: propertyKey,
+        propertyName: String(propertyKey),
       },
       options,
     )

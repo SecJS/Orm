@@ -81,16 +81,12 @@ export abstract class Model implements ModelContract {
    * Database Methods
    */
 
-  static toJSON(): InstanceType<Model> {
+  // static toJSON<T extends typeof Model>(this: T): ModelPropsRecord<InstanceType<T>> {
+  //   return {}
+  // }
+
+  toJSON(): ModelPropsRecord<this> {
     const json: any = {}
-
-    this.columns.forEach(column => json[column.columnName] = '')
-
-    return json
-  }
-
-  toJSON() {
-    const json = {}
 
     this.class.columns.forEach(column => json[column.columnName] = this[column.columnName])
 
@@ -117,7 +113,7 @@ export abstract class Model implements ModelContract {
     return json
   }
 
-  async find() {
+  async find(): Promise<this> {
     const flatData = await this.DB
       .buildTable(this.class.table)
       .find()
@@ -127,7 +123,7 @@ export abstract class Model implements ModelContract {
     return ModelFactory.run(this, this.class.relations)
   }
 
-  async findMany() {
+  async findMany(): Promise<this[]> {
     const flatData = await this.DB
       .buildTable(this.class.table)
       .findMany()
@@ -168,7 +164,7 @@ export abstract class Model implements ModelContract {
     return this.where('id', id).find()
   }
 
-  async delete() {
+  async delete(): Promise<void> {
     await this.DB.delete()
   }
 
@@ -194,7 +190,7 @@ export abstract class Model implements ModelContract {
     return this
   }
 
-  includes(relationName: ModelPropsKeys<this>) {
+  includes(relationName: ModelPropsKeys<this>): this {
     const self: any = this.constructor
 
     const relation = this.class.relations.find(relation => relation.columnName === relationName)

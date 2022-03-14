@@ -9,8 +9,8 @@
 
 import { Is } from '@secjs/utils'
 import { DatabaseContract } from '@secjs/database'
-import { RelationContract } from '../Contracts/RelationContract'
 import { DatabaseConnection } from '../DatabaseConnection'
+import { RelationContract } from '../Contracts/RelationContract'
 
 export class ModelFactory {
   private static DB: DatabaseContract = new DatabaseConnection().getDb()
@@ -45,6 +45,7 @@ export class ModelFactory {
     const primaryKey = relation.primaryKey
     const columnName = relation.columnName
 
+    // Where in approach
     // if (Is.Array(data)) {
     //   const foreignKeyValues = data.map(d => d[foreignKey])
     //
@@ -130,6 +131,11 @@ export class ModelFactory {
       Object.keys(modelData).forEach(key => data[columnName][key] = modelData[key])
     }
 
+    return data
+  }
+
+  // TODO Implement
+  private static async manyToMany(data: any, relation: RelationContract): Promise<any> {
     return data
   }
 

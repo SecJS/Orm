@@ -19,8 +19,10 @@ export function BelongsTo(model): PropertyDecorator {
     // Primary key will be defined inside addRelation method
     const relation: RelationContract = {
       model,
+      isIncluded: false,
       relationType: 'belongsTo',
       columnName: String(propertyKey),
+      propertyName: String(propertyKey),
       primaryKey: `${String(propertyKey)}Id`,
     }
 
