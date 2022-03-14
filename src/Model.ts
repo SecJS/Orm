@@ -11,6 +11,7 @@ import {
   ModelContract,
   ModelPropsKeys,
   ModelPropsRecord,
+  ModelRelationsKeys,
 } from './Contracts/ModelContract'
 import { String } from '@secjs/utils'
 import { DatabaseContract } from '@secjs/database'
@@ -207,7 +208,7 @@ export abstract class Model implements ModelContract {
     return this
   }
 
-  includes(relationName: ModelPropsKeys<this>): this {
+  includes(relationName: ModelRelationsKeys<this>): this {
     const relation = this.class.relations.find(
       relation => relation.propertyName === relationName,
     )
