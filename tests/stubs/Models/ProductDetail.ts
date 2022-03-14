@@ -13,8 +13,6 @@ import { Column } from '../../../src/Decorators/Column'
 import { BelongsTo } from '../../../src/Decorators/BelongsTo'
 
 export class ProductDetail extends Model {
-  static table = 'product_details'
-
   @Column()
   public id: number
 
@@ -30,6 +28,6 @@ export class ProductDetail extends Model {
   @Column()
   public productId: number
 
-  @BelongsTo(Product)
+  @BelongsTo(() => Product)
   public product: Product
 }

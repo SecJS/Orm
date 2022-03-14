@@ -7,35 +7,24 @@
  * file that was distributed with this source code.
  */
 
-export interface HasOneOptions {
-  model?: any
-  foreignKey?: string
-  columnName?: string
-  relationType?: string
-}
+import { RelationContract } from '../Contracts/RelationContract'
 
 /**
  * Define HasOne relationship
  */
 export function HasOne(model): PropertyDecorator {
-  return (target, propertyKey: string | symbol) => {
-    const options: HasOneOptions = {}
+  return (target: any, propertyKey: string | symbol) => {
+    const MainModel = target.constructor
 
-    let relations = Reflect.getMetadata('model:relations', target.constructor)
-
-    if (!relations) {
-      relations = []
-
-      Reflect.defineMetadata('model:relations', [], target.constructor)
+    // Primary key will be defined inside addRelation method
+    const relation: RelationContract = {
+      model,
+      relationType: 'hasOne',
+      columnName: String(propertyKey),
+      foreignKey: `${target.constructor.name.toLowerCase()}Id`
     }
 
-    options.model = model
-    options.relationType = 'hasOne'
-    options.columnName = String(propertyKey)
-    options.foreignKey = `${target.constructor.name.toLowerCase()}Id`
-
-    relations.push(options)
-
-    Reflect.defineMetadata('model:relations', relations, target.constructor)
+    MainModel.boot()
+    MainModel.addRelation(relation)
   }
 }

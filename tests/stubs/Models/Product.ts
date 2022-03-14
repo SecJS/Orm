@@ -7,7 +7,7 @@
  * file that was distributed with this source code.
  */
 
-import { User } from './User'
+import { UserModel } from './UserModel'
 import { Model } from '../../../src/Model'
 import { ProductDetail } from './ProductDetail'
 import { Column } from '../../../src/Decorators/Column'
@@ -15,8 +15,6 @@ import { HasMany } from '../../../src/Decorators/HasMany'
 import { BelongsTo } from '../../../src/Decorators/BelongsTo'
 
 export class Product extends Model {
-  static table = 'products'
-
   @Column()
   public id: number
 
@@ -32,9 +30,12 @@ export class Product extends Model {
   @Column()
   public updatedAt: Date
 
-  @BelongsTo(User)
-  public user: User
+  @Column()
+  public userId: number
 
-  @HasMany(ProductDetail)
+  @BelongsTo(() => UserModel)
+  public user: UserModel
+
+  @HasMany(() => ProductDetail)
   public productDetails: ProductDetail[]
 }

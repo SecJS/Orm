@@ -8,10 +8,10 @@
  */
 
 import 'reflect-metadata'
+import { Knex } from 'knex'
 import { Product } from './stubs/Models/Product'
 import { ProductDetail } from './stubs/Models/ProductDetail'
 import { DatabaseConnection } from '../src/DatabaseConnection'
-import { Knex } from 'knex'
 
 describe('\n Model Class', () => {
   let databaseConnection: DatabaseConnection
@@ -75,26 +75,18 @@ describe('\n Model Class', () => {
     await Promise.all(promises)
   })
 
-  it('should get all the columns and relations from Product model', async () => {
-    const columns = Reflect.getMetadata('model:columns', Product)
-
-    expect(columns[0].isPrimary).toBeFalsy()
-    expect(columns[0].columnName).toBe('id')
-    expect(columns[1].isPrimary).toBeFalsy()
-    expect(columns[1].columnName).toBe('name')
-
-    const hasMany = Reflect.getMetadata('model:hasMany', Product)
-
-    expect(hasMany[0].model).toBe(ProductDetail)
-    expect(hasMany[0].columnName).toBe('productDetails')
-  })
-
   it('should return the data from Product model organized', async () => {
     const product = new Product()
 
-    const arrayOfProducts = await product.join('user').join('productDetails').find()
+    const models = await product
+      .includes('user')
+      .includes('productDetails')
+      .findMany()
 
-    console.log(arrayOfProducts)
+    models.forEach(model => console.log(model.toJSON()))
+
+    const json = Product.toJSON()
+    json.
   })
 
   afterEach(async () => {

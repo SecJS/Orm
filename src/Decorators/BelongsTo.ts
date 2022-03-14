@@ -7,35 +7,24 @@
  * file that was distributed with this source code.
  */
 
-export interface BelongsToOptions {
-  model?: any
-  foreignKey?: string
-  columnName?: string
-  relationType?: string
-}
+import { RelationContract } from '../Contracts/RelationContract'
 
 /**
  * Define BelongsTo relationship
  */
 export function BelongsTo(model): PropertyDecorator {
-  return (target, propertyKey: string | symbol) => {
-    const options: BelongsToOptions = {}
+  return (target: any, propertyKey: string | symbol) => {
+    const MainModel = target.constructor
 
-    let relations = Reflect.getMetadata('model:relations', target.constructor)
-
-    if (!relations) {
-      relations = []
-
-      Reflect.defineMetadata('model:relations', [], target.constructor)
+    // Primary key will be defined inside addRelation method
+    const relation: RelationContract = {
+      model,
+      relationType: 'belongsTo',
+      columnName: String(propertyKey),
+      primaryKey: `${String(propertyKey)}Id`,
     }
 
-    options.model = model
-    options.foreignKey = 'id'
-    options.relationType = 'belongsTo'
-    options.columnName = String(propertyKey)
-
-    relations.push(options)
-
-    Reflect.defineMetadata('model:relations', relations, target.constructor)
+    MainModel.boot()
+    MainModel.addRelation(relation)
   }
 }

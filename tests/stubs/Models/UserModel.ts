@@ -10,13 +10,14 @@
 import { Product } from './Product'
 import { Model } from '../../../src/Model'
 import { Column } from '../../../src/Decorators/Column'
-import { HasOne } from '../../../src/Decorators/HasOne'
+import { HasMany } from '../../../src/Decorators/HasMany'
 
-export class User extends Model {
+export class UserModel extends Model {
   static table = 'users'
+  static primaryKey = 'idPrimary'
 
   @Column()
-  public id: number
+  public idPrimary: number
 
   @Column()
   public name: string
@@ -30,8 +31,8 @@ export class User extends Model {
   @Column()
   public updatedAt: Date
 
-  @HasOne(Product)
-  public product: Product
+  @HasMany(() => Product)
+  public products: Product[]
 }
 
 

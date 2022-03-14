@@ -8,107 +8,139 @@
  */
 
 import { Is } from '@secjs/utils'
+import { DatabaseContract } from '@secjs/database'
+import { RelationContract } from '../Contracts/RelationContract'
+import { DatabaseConnection } from '../DatabaseConnection'
 
 export class ModelFactory {
-  private static createDictionaryFromRow(row: any | any[]) {
-    const dictionary = {}
+  private static DB: DatabaseContract = new DatabaseConnection().getDb()
 
-    if (Is.Array(row)) row = row[0]
+  private static getIncludedRelations(relations: RelationContract[]) {
+    if (!relations || !relations.length) return []
 
-    Object.keys(row).forEach(key => {
-      const [_, column] = key.split('.')
+    return relations.reduce((includedRelations: RelationContract[], previous: RelationContract) => {
+      if (previous.isIncluded) includedRelations.push(previous)
 
-      dictionary[key] = column
-    })
-
-    return dictionary
+      return includedRelations
+    }, [])
   }
 
-  private static updateInstanceState(row: any, model: any) {
-    const tableName = model.table
-    const rowDictionary = ModelFactory.createDictionaryFromRow(row)
+  private static async verifyModelType(data: any | any[], relation: RelationContract) {
+    if (Is.Array(data)) {
+      for (let d of data) {
+        const index = data.indexOf(d)
 
-    Object.keys(rowDictionary).forEach(key => {
-      const relationTableName = key.split('.')[0]
-
-      if (tableName === relationTableName) {
-        model[rowDictionary[key]] = row[key]
-
-        return
+        data[index] = await this[relation.relationType](d, relation)
       }
 
-      const relation = model.relations.find(relation => relation.model.table === relationTableName)
+      return data
+    }
 
-      switch (relation.relationType) {
-        case 'hasOne':
-          if (!model[relation.columnName]) {
-            model[relation.columnName] = new relation.model()
-          }
+    return this[relation.relationType](data, relation)
+  }
 
-          // console.log(row)
-          console.log(key, row[key])
+  private static async hasOne(data: any, relation: RelationContract): Promise<any> {
+    const model = relation.model
+    const foreignKey = relation.foreignKey
+    const primaryKey = relation.primaryKey
+    const columnName = relation.columnName
 
-          model[relation.columnName][rowDictionary[key]] = row[key]
-          break;
-        case 'belongsTo':
-          if (!model[relation.columnName]) {
-            model[relation.columnName] = new relation.model()
-          }
+    // if (Is.Array(data)) {
+    //   const foreignKeyValues = data.map(d => d[foreignKey])
+    //
+    //   console.log(foreignKey)
+    //
+    //   const relationData = await this.DB
+    //     .buildTable(model.table)
+    //     .buildWhereIn('id', foreignKeyValues)
+    //     .findMany()
+    //
+    //   relationData.forEach(relationD => {
+    //     data.forEach((mainM, index) => {
+    //       console.log(relationD.id === mainM[foreignKey])
+    //       if (relationD.id !== mainM[foreignKey]) return
+    //
+    //       mainM[columnName] = new model()
+    //
+    //       Object.keys(relationD).forEach(key => mainM[columnName][key] = relationD[key])
+    //
+    //       data[index] = mainM
+    //     })
+    //   })
+    //
+    //   return data
+    // }
 
-          // console.log(row)
-          console.log(key, row[key])
+    data[columnName] = null
 
-          model[relation.columnName][rowDictionary[key]] = row[key]
-          break;
-        case 'hasMany':
-          if (!model[relation.columnName]) {
-            model[relation.columnName] = {}
-          }
+    const modelData = await this.DB
+      .buildTable(model.table)
+      .buildWhere(foreignKey, data[primaryKey])
+      .find()
 
-          // console.log('PRIMARYKEY', `${tableName}.id`)
-          // console.log('PRIMARYKEY', row[`${tableName}.id`])
-          // console.log('FOREIGNKEY', `${relationTableName}.${relation.foreignKey}`)
-          // console.log('FOREIGNKEY', row[`${relationTableName}.${relation.foreignKey}`])
+    if (modelData) {
+      data[columnName] = new model()
 
-          if (row[`${relationTableName}.${relation.foreignKey}`] !== row[`${tableName}.id`]) {
-            return
-          }
+      Object.keys(modelData).forEach(key => data[columnName][key] = modelData[key])
+    }
 
-          if (model[relation.columnName][row[`${relationTableName}.id`]]) {
-            const relationModel = model[relation.columnName][row[`${relationTableName}.id`]]
-            relationModel[rowDictionary[key]] = row[key]
+    return data
+  }
 
-            model[relation.columnName][row[`${relationTableName}.id`]] = relationModel
-            return
-          }
+  private static async hasMany(data: any, relation: RelationContract): Promise<any> {
+    const model = relation.model
+    const foreignKey = relation.foreignKey
+    const primaryKey = relation.primaryKey
+    const columnName = relation.columnName
 
-          const relationModel = new relation.model()
-          relationModel[rowDictionary[key]] = row[key]
+    data[columnName] = []
 
-          model[relation.columnName][row[`${relationTableName}.id`]] = relationModel
-        break;
-      }
+    const modelsData = await this.DB
+      .buildTable(model.table)
+      .buildWhere(foreignKey, data[primaryKey])
+      .findMany()
+
+    modelsData.forEach(modelData => {
+      const modelRelation = new model()
+
+      Object.keys(modelData).forEach(key => modelRelation[key] = modelData[key])
+
+      data[columnName].push(modelRelation)
     })
 
-    model.relations.forEach(relation => {
-      if (relation.relationType === 'hasMany') {
-        model[relation.columnName] = Object.values(model[relation.columnName])
-      }
-    })
+    return data
+  }
+
+  private static async belongsTo(data: any, relation: RelationContract): Promise<any> {
+    const model = relation.model
+    const foreignKey = relation.foreignKey
+    const primaryKey = relation.primaryKey
+    const columnName = relation.columnName
+
+    data[columnName] = null
+
+    const modelData = await this.DB
+      .buildTable(model.table)
+      .buildWhere(foreignKey, data[primaryKey])
+      .find()
+
+    if (modelData) {
+      data[columnName] = new model()
+
+      Object.keys(modelData).forEach(key => data[columnName][key] = modelData[key])
+    }
+
+    return data
+  }
+
+  static async run(model: any | any[], relations: RelationContract[]) {
+    const includedRelations = ModelFactory.getIncludedRelations(relations)
+
+    for (const includedRelation of includedRelations) {
+      model = await this.verifyModelType(model, includedRelation)
+    }
 
     return model
-  }
-
-  static create(flatData: any[], model: any) {
-    const data = flatData.reduce((result, row) => {
-      const id = row[`${model.table}.id`]
-
-      result[id] = result[id] || this.updateInstanceState(row, model)
-
-      return result
-    }, {})
-
-    return Object.values(data)
   }
 }
 

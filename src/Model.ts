@@ -13,61 +13,136 @@ import { ColumnOptions } from './Decorators/Column'
 import { ModelFactory } from './Utils/ModelFactory'
 import { DatabaseConnection } from './DatabaseConnection'
 import { InternalServerException } from '@secjs/exceptions'
-import { Product } from '../tests/stubs/Models/Product'
+import { RelationContract } from './Contracts/RelationContract'
+import { ModelPropsKeys, ModelPropsRecord, ModelContract } from './Contracts/ModelContract'
 
-type OmittedModelMethods = keyof Model
-type ModelPropsKeys<This> = keyof Omit<This, OmittedModelMethods>
-type ModelPropsRecord<This> = Record<ModelPropsKeys<This>, any>
-
-export abstract class Model {
+export abstract class Model implements ModelContract {
   private DB: DatabaseContract = new DatabaseConnection().getDb()
 
-  private relations = this.getMetadata('model:relations')
-  private columns: ColumnOptions[] = this.getMetadata('model:columns')
+  /** The name of the table in Database */
+  static table: string
+  /** The boolean that defines if this model has been already booted */
+  static booted: boolean
+  /** The database connection that this Model will work */
+  static connection: string
+  /** The primary key to build relationships across models */
+  static primaryKey: string
 
-  protected connection = 'default'
-  protected table = String.toSnakeCase(String.pluralize(this.constructor.name))
+  /** All the model columns mapped */
+  static columns: ColumnOptions[]
+  /** All the model relations mapped */
+  static relations: RelationContract[]
 
-  private getMetadata(key: string) {
-    const metadata = Reflect.getMetadata(key, this.constructor)
+  private static defineStatic(propName: string, value: any) {
+    if (this[propName]) return
 
-    if (!metadata) {
-      return []
+    this[propName] = value
+  }
+
+  static boot() {
+    if (this.booted) return
+
+    this.booted = true
+
+    this.defineStatic('columns', [])
+    this.defineStatic('relations', [])
+    this.defineStatic('primaryKey', 'id')
+    this.defineStatic('connection', 'default')
+    this.defineStatic('table', String.toSnakeCase(String.pluralize(this.name)))
+  }
+
+  static addColumn(column: ColumnOptions) {
+    if (this.primaryKey === column.columnName) {
+      column.isPrimary = true
     }
 
-    return metadata
+    this.columns.push(column)
   }
 
-  constructor() {
-    // const columnNames = this.columns.map(column => `${column.columnName} as ${this.table}.${column.columnName}`)
-    // const columnNames = this.columns.map(column => `${column.columnName}`)
+  static addRelation(relation: RelationContract) {
+    relation.model = relation.model()
 
-    // this.DB.buildTable(this.table)
+    switch (relation.relationType) {
+      case 'belongsTo':
+        relation.foreignKey = this.primaryKey
+        break;
+      default:
+        relation.primaryKey = this.primaryKey
+    }
+
+    this.relations.push(relation)
   }
 
+  protected get class(): any {
+    return this.constructor
+  }
 
-  // protected abstract primaryKey = 'id'
-  // protected abstract timestamps = false
-  // protected abstract incrementing = true
-  // protected abstract incrementingType = 'string'
+  /**
+   * Database Methods
+   */
+
+  static toJSON(): InstanceType<Model> {
+    const json: any = {}
+
+    this.columns.forEach(column => json[column.columnName] = '')
+
+    return json
+  }
+
+  toJSON() {
+    const json = {}
+
+    this.class.columns.forEach(column => json[column.columnName] = this[column.columnName])
+
+    this.class.relations.forEach(relation => {
+      if (!relation.isIncluded) return
+
+      if (['belongsTo', 'hasOne'].includes(relation.relationType)) {
+        if (!this[relation.columnName]) return
+
+        json[relation.columnName] = this[relation.columnName].toJSON()
+
+        return
+      }
+
+      json[relation.columnName] = []
+
+      this[relation.columnName].forEach(relationData => {
+        if (!relationData) return
+
+        json[relation.columnName].push(relationData.toJSON())
+      })
+    })
+
+    return json
+  }
 
   async find() {
-    const data = await this.DB
-      .buildTable(this.table)
+    const flatData = await this.DB
+      .buildTable(this.class.table)
       .find()
 
-    // console.log(ObjectTranspiler.createDictionaryFromRow(data))
+    Object.keys(flatData).forEach(key => this[key] = flatData[key])
 
-    return data
+    return ModelFactory.run(this, this.class.relations)
   }
 
   async findMany() {
-    let flatData = await this.DB
-      .buildTable(this.table)
+    const flatData = await this.DB
+      .buildTable(this.class.table)
       .findMany()
 
-    // return ModelFactory.create(flatData, this) as this[]
-    return flatData
+    const modelData = []
+
+    flatData.forEach(data => {
+      const model = new this.class()
+
+      Object.keys(data).forEach(key => model[key] = data[key])
+
+      modelData.push(model)
+    })
+
+    return ModelFactory.run(modelData, this.class.relations)
   }
 
   async paginate(page: number, limit: number, resourceUrl = '/') {
@@ -78,22 +153,28 @@ export abstract class Model {
     return this.DB.forPage(page, limit)
   }
 
-  async create(values: ModelPropsRecord<this>) {
-    return this.DB.insertAndGet(values)
+  async create(values: ModelPropsRecord<this>): Promise<this> {
+    const [id] = await this.DB.insert(values)
+
+    return this.where('id', id).find()
   }
 
   async update(
     key: ModelPropsKeys<this> | ModelPropsRecord<this>,
     value?: ModelPropsRecord<this>,
-  ) {
-    return this.DB.updateAndGet(key, value)
+  ): Promise<this> {
+    const [id] = await this.DB.update(key, value)
+
+    return this.where('id', id).find()
   }
 
   async delete() {
-    return this.DB.delete()
+    await this.DB.delete()
   }
 
-  // Builder Methods
+  /**
+   * Builder Methods
+   */
 
   // select(...columns: ModelPropsKeys<this>[]): this {
   //   this.DB.buildSelect(...(columns as string[]))
@@ -113,37 +194,32 @@ export abstract class Model {
     return this
   }
 
-  join(relationName: string): this {
-    const relation = this.relations.find(relation => relation.columnName === relationName)
+  includes(relationName: ModelPropsKeys<this>) {
+    const self: any = this.constructor
+
+    const relation = this.class.relations.find(relation => relation.columnName === relationName)
 
     if (!relation) {
       throw new InternalServerException(`Relation ${relationName} not found in model ${this.constructor.name}`)
     }
 
-    let { model, foreignKey } = relation
+    relation.isIncluded = true
 
-    let relationColumns = Reflect.getMetadata('model:columns', model)
-
-    relationColumns = relationColumns.map(column => `${model.table}.${column.columnName} as ${model.table}.${column.columnName}`)
-    const modelColumns = this.columns.map(column => `${this.table}.${column.columnName} as ${this.table}.${column.columnName}`)
-
-    const primaryKey = `${this.table}.id`
-    foreignKey = `${model.table}.${foreignKey}`
-
-    this.DB
-      .buildJoin(model.table, primaryKey, '=', foreignKey, 'leftJoin')
-      .buildSelect(...modelColumns, ...relationColumns)
+    const index = this.class.relations.indexOf(relation)
+    this.class.relations[index] = relation
 
     return this
   }
 
-  groupBy(...columns: string[]): this {
+  groupBy(...columns: ModelPropsKeys<this>[]): this {
+    // @ts-ignore
     this.DB.buildGroupBy(...columns)
 
     return this
   }
 
-  orderBy(column: string, direction: 'asc' | 'desc'): this {
+  orderBy(column: ModelPropsKeys<this>, direction: 'asc' | 'desc'): this {
+    // @ts-ignore
     this.DB.buildOrderBy(column, direction)
 
     return this

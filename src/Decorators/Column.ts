@@ -21,7 +21,9 @@ export interface ColumnOptions {
  * Define database column
  */
 export function Column(options?: ColumnOptions): PropertyDecorator {
-  return (target, propertyKey: string | symbol) => {
+  return (target: any, propertyKey: string | symbol) => {
+    const Model = target.constructor
+
     options = Object.assign(
       {},
       {
@@ -31,16 +33,7 @@ export function Column(options?: ColumnOptions): PropertyDecorator {
       options,
     )
 
-    let columns = Reflect.getMetadata('model:columns', target.constructor)
-
-    if (!columns) {
-      columns = []
-
-      Reflect.defineMetadata('model:columns', [], target.constructor)
-    }
-
-    columns.push(options)
-
-    Reflect.defineMetadata('model:columns', columns, target.constructor)
+    Model.boot()
+    Model.addColumn(options)
   }
 }
