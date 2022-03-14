@@ -14,19 +14,36 @@ import { InternalServerException } from '@secjs/exceptions'
 import { RelationContract } from '../Contracts/RelationContract'
 
 export class ModelFactory {
-  private static DB: DatabaseContract = new DatabaseConnection().getDb()
+  private DB: DatabaseContract
+
+  constructor(connection: string) {
+    this.DB = new DatabaseConnection().getDatabase(connection)
+  }
 
   private static getIncludedRelations(relations: RelationContract[]) {
     if (!relations || !relations.length) return []
 
-    return relations.reduce((includedRelations: RelationContract[], previous: RelationContract) => {
-      if (previous.isIncluded) includedRelations.push(previous)
+    return relations.reduce(
+      (includedRelations: RelationContract[], previous: RelationContract) => {
+        if (previous.isIncluded) includedRelations.push(previous)
 
-      return includedRelations
-    }, [])
+        return includedRelations
+      },
+      [],
+    )
   }
 
-  private static async verifyModelType(data: any | any[], relation: RelationContract) {
+  async run(model: any | any[], relations: RelationContract[]) {
+    const includedRelations = ModelFactory.getIncludedRelations(relations)
+
+    for (const includedRelation of includedRelations) {
+      model = await this.verifyModelType(model, includedRelation)
+    }
+
+    return model
+  }
+
+  private async verifyModelType(data: any | any[], relation: RelationContract) {
     if (Is.Array(data)) {
       for (let d of data) {
         const index = data.indexOf(d)
@@ -40,12 +57,12 @@ export class ModelFactory {
     return this[relation.relationType](data, relation)
   }
 
-  private static async hasOne(data: any, relation: RelationContract): Promise<any> {
-    const model = relation.model
+  private async hasOne(data: any, relation: RelationContract): Promise<any> {
+    const Model = relation.model()
     const foreignKey = relation.foreignKey
     const primaryKey = relation.primaryKey
     const propertyName = relation.propertyName
-    const columnDictionary = model.columnDictionary
+    const columnDictionary = Model.columnDictionary
 
     // Where in approach
     // if (Is.Array(data)) {
@@ -76,17 +93,19 @@ export class ModelFactory {
 
     data[propertyName] = null
 
-    const modelData = await this.DB
-      .buildTable(model.table)
+    const modelData = await this.DB.buildTable(Model.table)
       .buildWhere(foreignKey, data[primaryKey])
       .find()
 
     if (modelData) {
-      data[propertyName] = new model()
+      // @ts-ignore
+      data[propertyName] = new Model()
 
       Object.keys(modelData).forEach(key => {
         if (!columnDictionary[key]) {
-          throw new InternalServerException(`The field ${key} has not been mapped in some of your @Column annotation in ${model.name} Model`)
+          throw new InternalServerException(
+            `The field ${key} has not been mapped in some of your @Column annotation in ${Model.name} Model`,
+          )
         }
 
         data[propertyName][columnDictionary[key]] = modelData[key]
@@ -96,26 +115,28 @@ export class ModelFactory {
     return data
   }
 
-  private static async hasMany(data: any, relation: RelationContract): Promise<any> {
-    const model = relation.model
+  private async hasMany(data: any, relation: RelationContract): Promise<any> {
+    const Model = relation.model()
     const foreignKey = relation.foreignKey
     const primaryKey = relation.primaryKey
     const propertyName = relation.propertyName
-    const columnDictionary = model.columnDictionary
+    const columnDictionary = Model.columnDictionary
 
     data[propertyName] = []
 
-    const modelsData = await this.DB
-      .buildTable(model.table)
+    const modelsData = await this.DB.buildTable(Model.table)
       .buildWhere(foreignKey, data[primaryKey])
       .findMany()
 
     modelsData.forEach(modelData => {
-      const modelRelation = new model()
+      // @ts-ignore
+      const modelRelation = new Model()
 
       Object.keys(modelData).forEach(key => {
         if (!columnDictionary[key]) {
-          throw new InternalServerException(`The field ${key} has not been mapped in some of your @Column annotation in ${model.name} Model`)
+          throw new InternalServerException(
+            `The field ${key} has not been mapped in some of your @Column annotation in ${Model.name} Model`,
+          )
         }
 
         modelRelation[columnDictionary[key]] = modelData[key]
@@ -127,43 +148,15 @@ export class ModelFactory {
     return data
   }
 
-  private static async belongsTo(data: any, relation: RelationContract): Promise<any> {
-    // const model = relation.model
-    // const foreignKey = relation.foreignKey
-    // const primaryKey = relation.primaryKey
-    // const propertyName = relation.propertyName
-    // const columnDictionary = model.columnDictionary
-    //
-    // data[propertyName] = null
-    //
-    // const modelData = await this.DB
-    //   .buildTable(model.table)
-    //   .buildWhere(foreignKey, data[primaryKey])
-    //   .find()
-    //
-    // if (modelData) {
-    //   data[propertyName] = new model()
-    //
-    //   Object.keys(modelData).forEach(key => data[propertyName][columnDictionary[key]] = modelData[key])
-    // }
-    //
-    // return data
+  private async belongsTo(data: any, relation: RelationContract): Promise<any> {
     return this.hasOne(data, relation)
   }
 
   // TODO Implement
-  private static async manyToMany(data: any, relation: RelationContract): Promise<any> {
+  private async manyToMany(
+    data: any,
+    relation: RelationContract,
+  ): Promise<any> {
     return data
   }
-
-  static async run(model: any | any[], relations: RelationContract[]) {
-    const includedRelations = ModelFactory.getIncludedRelations(relations)
-
-    for (const includedRelation of includedRelations) {
-      model = await this.verifyModelType(model, includedRelation)
-    }
-
-    return model
-  }
 }
-

@@ -7,12 +7,13 @@
  * file that was distributed with this source code.
  */
 
+import { Model } from '../Model'
+
 export interface RelationContract {
-  model?: any
+  model?: () => typeof Model
   primaryKey?: string
   foreignKey?: string
   relationType?: string
   isIncluded?: boolean
   propertyName?: string
 }
-

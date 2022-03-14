@@ -7,6 +7,11 @@
  * file that was distributed with this source code.
  */
 
+import {
+  ModelContract,
+  ModelPropsKeys,
+  ModelPropsRecord,
+} from './Contracts/ModelContract'
 import { String } from '@secjs/utils'
 import { DatabaseContract } from '@secjs/database'
 import { ModelFactory } from './Utils/ModelFactory'
@@ -14,11 +19,8 @@ import { DatabaseConnection } from './DatabaseConnection'
 import { InternalServerException } from '@secjs/exceptions'
 import { ColumnContract } from './Contracts/ColumnContract'
 import { RelationContract } from './Contracts/RelationContract'
-import { ModelPropsKeys, ModelPropsRecord, ModelContract } from './Contracts/ModelContract'
 
 export abstract class Model implements ModelContract {
-  private DB: DatabaseContract = new DatabaseConnection().getDb()
-
   /** The name of the table in Database */
   static table: string
   /** The boolean that defines if this model has been already booted */
@@ -27,19 +29,26 @@ export abstract class Model implements ModelContract {
   static connection: string
   /** The primary key to build relationships across models */
   static primaryKey: string
-
   /** All the model columns mapped */
   static columns: ColumnContract[]
   /** Dictionary to specify the column name in database to class property */
   static columnDictionary: Record<string, string>
-
   /** All the model relations mapped */
   static relations: RelationContract[]
 
-  private static defineStatic(propName: string, value: any) {
-    if (this[propName]) return
+  private DB: DatabaseContract
+  private modelFactory: ModelFactory
 
-    this[propName] = value
+  constructor() {
+    const table = this.class.table
+    const connection = this.class.connection
+
+    this.modelFactory = new ModelFactory(connection)
+    this.DB = new DatabaseConnection().getDatabase(connection).buildTable(table)
+  }
+
+  protected get class(): any {
+    return this.constructor
   }
 
   static boot() {
@@ -66,12 +75,10 @@ export abstract class Model implements ModelContract {
   }
 
   static addRelation(relation: RelationContract) {
-    relation.model = relation.model()
-
     switch (relation.relationType) {
       case 'belongsTo':
         relation.foreignKey = this.primaryKey
-        break;
+        break
       default:
         relation.primaryKey = this.primaryKey
     }
@@ -79,22 +86,22 @@ export abstract class Model implements ModelContract {
     this.relations.push(relation)
   }
 
-  protected get class(): any {
-    return this.constructor
+  private static defineStatic(propName: string, value: any) {
+    if (this[propName]) return
+
+    this[propName] = value
   }
 
   /**
    * Database Methods
    */
 
-  // static toJSON<T extends typeof Model>(this: T): ModelPropsRecord<InstanceType<T>> {
-  //   return {}
-  // }
-
   toJSON(): ModelPropsRecord<this> {
     const json: any = {}
 
-    this.class.columns.forEach(column => json[column.columnName] = this[column.columnName])
+    this.class.columns.forEach(
+      column => (json[column.columnName] = this[column.columnName]),
+    )
 
     this.class.relations.forEach(relation => {
       if (!relation.isIncluded) return
@@ -120,19 +127,15 @@ export abstract class Model implements ModelContract {
   }
 
   async find(): Promise<this> {
-    const flatData = await this.DB
-      .buildTable(this.class.table)
-      .find()
+    const flatData = await this.DB.find()
 
-    Object.keys(flatData).forEach(key => this[key] = flatData[key])
+    Object.keys(flatData).forEach(key => (this[key] = flatData[key]))
 
-    return ModelFactory.run(this, this.class.relations)
+    return this.modelFactory.run(this, this.class.relations)
   }
 
   async findMany(): Promise<this[]> {
-    const flatData = await this.DB
-      .buildTable(this.class.table)
-      .findMany()
+    const flatData = await this.DB.findMany()
 
     const modelData = []
 
@@ -141,7 +144,9 @@ export abstract class Model implements ModelContract {
 
       Object.keys(data).forEach(key => {
         if (!this.class.columnDictionary[key]) {
-          throw new InternalServerException(`The field ${key} has not been mapped in some of your @Column annotation in ${this.class.name} Model`)
+          throw new InternalServerException(
+            `The field ${key} has not been mapped in some of your @Column annotation in ${this.class.name} Model`,
+          )
         }
 
         model[this.class.columnDictionary[key]] = data[key]
@@ -150,7 +155,7 @@ export abstract class Model implements ModelContract {
       modelData.push(model)
     })
 
-    return ModelFactory.run(modelData, this.class.relations)
+    return this.modelFactory.run(modelData, this.class.relations)
   }
 
   async paginate(page: number, limit: number, resourceUrl = '/') {
@@ -203,10 +208,14 @@ export abstract class Model implements ModelContract {
   }
 
   includes(relationName: ModelPropsKeys<this>): this {
-    const relation = this.class.relations.find(relation => relation.propertyName === relationName)
+    const relation = this.class.relations.find(
+      relation => relation.propertyName === relationName,
+    )
 
     if (!relation) {
-      throw new InternalServerException(`Relation ${relationName} not found in model ${this.constructor.name}`)
+      throw new InternalServerException(
+        `Relation ${relationName} not found in model ${this.constructor.name}`,
+      )
     }
 
     relation.isIncluded = true

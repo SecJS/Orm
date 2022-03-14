@@ -12,11 +12,20 @@ import { Database, DatabaseContract } from '@secjs/database'
 export class DatabaseConnection {
   private static DB: DatabaseContract = new Database()
 
-  public getDb(): DatabaseContract {
+  /**
+   * TODO Implement cloneDatabase method in @secjs/database.
+   *
+   * We are using Database as Mono state inside all Model subclasses, this could
+   * cause a big problem when handling a lot of requests using builder methods.
+   * This method will create a new instance of Database, without creating a new
+   * connection with database.
+   */
+  getDatabase(connection = 'default'): DatabaseContract {
+    // return DatabaseConnection.DB.cloneDatabase(connection)
     return DatabaseConnection.DB
   }
 
-  public async connection(connection = 'default') {
+  async createConnection(connection = 'default') {
     if (connection === 'default') {
       return DatabaseConnection.DB.connect()
     }
