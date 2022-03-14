@@ -7,12 +7,6 @@
  * file that was distributed with this source code.
  */
 
-import {
-  ModelContract,
-  ModelPropsKeys,
-  ModelPropsRecord,
-  ModelRelationsKeys,
-} from './Contracts/ModelContract'
 import { String } from '@secjs/utils'
 import { DatabaseContract } from '@secjs/database'
 import { ModelFactory } from './Utils/ModelFactory'
@@ -21,7 +15,50 @@ import { InternalServerException } from '@secjs/exceptions'
 import { ColumnContract } from './Contracts/ColumnContract'
 import { RelationContract } from './Contracts/RelationContract'
 
-export abstract class Model implements ModelContract {
+/**
+ * Omit keys of type when the key type is from the specified type
+ */
+type OmitTypes<
+  This,
+  Types,
+  WithNever = {
+    [Key in keyof This]: Exclude<This[Key], undefined> extends Types
+      ? never
+      : This[Key] extends Record<string, unknown>
+      ? OmitTypes<This[Key], Types>
+      : This[Key]
+  }
+> = Pick<
+  WithNever,
+  {
+    [K in keyof WithNever]: WithNever[K] extends never ? never : K
+  }[keyof WithNever]
+>
+
+/**
+ * Omit all the methods from Model class. Example: 'find' | 'findMany'
+ */
+export type OmittedModelMethods = keyof Model
+
+/**
+ * Type with only the keys from This. Example: 'id' | 'name'
+ */
+export type ModelPropsKeys<This> = keyof Omit<This, OmittedModelMethods> &
+  string
+
+/**
+ * Type of Record from This. Example: Record<'id' | 'name', any>
+ */
+export type ModelPropsRecord<This> = Record<ModelPropsKeys<This>, any>
+
+/**
+ * Type with only the relations from This. Example: 'user' | 'productDetails'
+ */
+export type ModelRelationsKeys<This> = ModelPropsKeys<
+  OmitTypes<This, string | boolean | number | Date>
+>
+
+export abstract class Model {
   /** The name of the table in Database */
   static table: string
   /** The boolean that defines if this model has been already booted */
@@ -202,7 +239,10 @@ export abstract class Model implements ModelContract {
   //   return this
   // }
 
-  where(statement: string | ModelPropsRecord<this>, value?: any): this {
+  where(
+    statement: string | ModelPropsKeys<this> | ModelPropsRecord<this>,
+    value?: any,
+  ): this {
     this.DB.buildWhere(statement, value)
 
     return this
