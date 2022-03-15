@@ -97,6 +97,16 @@ describe('\n Model Class', () => {
     expect(models[0].productDetails[1].id).toBe(2)
     expect(models[0].productDetails[1].detail).toBe('Black')
     expect(models[0].productDetails[1].productModelId).toBe(1)
+
+    const productJson = models[0].toJSON()
+
+    expect(productJson.id).toBe(1)
+    expect(productJson.name).toBe('iPhone 10')
+    expect(productJson.user.idPrimary).toBe(1)
+    expect(productJson.user.name).toBe('Victor')
+    expect(productJson.productDetails[0].id).toBe(1)
+    expect(productJson.productDetails[0].detail).toBe('128 GB')
+    expect(productJson.productDetails[0].productModelId).toBe(1)
   })
 
   afterEach(async () => {

@@ -34,5 +34,3 @@ export class UserModel extends Model {
   @HasMany(() => Product)
   public products: Product[]
 }
-
-

@@ -99,7 +99,6 @@ export abstract class Model {
     this.defineStatic('primaryKey', 'id')
     this.defineStatic('columnDictionary', {})
     this.defineStatic('connection', 'default')
-    this.defineStatic('relationDictionary', {})
     this.defineStatic('table', String.toSnakeCase(String.pluralize(this.name)))
   }
 
@@ -135,39 +134,13 @@ export abstract class Model {
    */
 
   toJSON(): ModelPropsRecord<this> {
-    const json: any = {}
-
-    this.class.columns.forEach(
-      column => (json[column.columnName] = this[column.columnName]),
-    )
-
-    this.class.relations.forEach(relation => {
-      if (!relation.isIncluded) return
-
-      if (['belongsTo', 'hasOne'].includes(relation.relationType)) {
-        if (!this[relation.columnName]) return
-
-        json[relation.columnName] = this[relation.columnName].toJSON()
-
-        return
-      }
-
-      json[relation.columnName] = []
-
-      this[relation.columnName].forEach(relationData => {
-        if (!relationData) return
-
-        json[relation.columnName].push(relationData.toJSON())
-      })
-    })
-
-    return json
+    return this.modelFactory.fabricateJson(this)
   }
 
   async find(): Promise<this> {
     const flatData = await this.DB.find()
 
-    Object.keys(flatData).forEach(key => (this[key] = flatData[key]))
+    this.modelFactory.fabricateInstance(flatData, this)
 
     return this.modelFactory.run(this, this.class.relations)
   }
@@ -175,33 +148,33 @@ export abstract class Model {
   async findMany(): Promise<this[]> {
     const flatData = await this.DB.findMany()
 
-    const modelData = []
-
-    flatData.forEach(data => {
-      const model = new this.class()
-
-      Object.keys(data).forEach(key => {
-        if (!this.class.columnDictionary[key]) {
-          throw new InternalServerException(
-            `The field ${key} has not been mapped in some of your @Column annotation in ${this.class.name} Model`,
-          )
-        }
-
-        model[this.class.columnDictionary[key]] = data[key]
-      })
-
-      modelData.push(model)
-    })
+    const modelData = this.modelFactory.fabricateInstance(flatData, this.class)
 
     return this.modelFactory.run(modelData, this.class.relations)
   }
 
   async paginate(page: number, limit: number, resourceUrl = '/') {
-    return this.DB.paginate(page, limit, resourceUrl)
+    const { data, meta, links } = await this.DB.paginate(
+      page,
+      limit,
+      resourceUrl,
+    )
+
+    const modelData = this.modelFactory.fabricateInstance(data, this.class)
+
+    return {
+      meta,
+      links,
+      data: await this.modelFactory.run(modelData, this.class.relations),
+    }
   }
 
   async forPage(page: number, limit: number) {
-    return this.DB.forPage(page, limit)
+    const data = await this.DB.forPage(page, limit)
+
+    const modelData = this.modelFactory.fabricateInstance(data, this.class)
+
+    return this.modelFactory.run(modelData, this.class.relations)
   }
 
   async create(values: ModelPropsRecord<this>): Promise<this> {

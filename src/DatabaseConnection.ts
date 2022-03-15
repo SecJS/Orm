@@ -33,4 +33,3 @@ export class DatabaseConnection {
     await DatabaseConnection.DB.connection(connection).connect()
   }
 }
-

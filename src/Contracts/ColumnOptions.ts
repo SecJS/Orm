@@ -10,10 +10,9 @@
 export interface ColumnOptions {
   isPrimary?: boolean
   columnName?: string
-  propertyName?: string,
+  propertyName?: string
   // serialize?: any
   // serializeAs?: any
   // prepare?: (value: any) => void
   // consume?: (value: any) => void
 }
-

@@ -10,6 +10,5 @@
 export interface ColumnContract {
   isPrimary?: boolean
   columnName?: string
-  propertyName?: string,
+  propertyName?: string
 }
-

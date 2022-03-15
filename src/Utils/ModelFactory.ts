@@ -33,6 +33,64 @@ export class ModelFactory {
     )
   }
 
+  fabricateJson(model: any) {
+    const json: any = {}
+
+    model.class.columns.forEach(
+      column => (json[column.propertyName] = model[column.propertyName]),
+    )
+
+    ModelFactory.getIncludedRelations(model.class.relations).forEach(
+      relation => {
+        if (['belongsTo', 'hasOne'].includes(relation.relationType)) {
+          if (!model[relation.propertyName]) return
+
+          json[relation.propertyName] = model[relation.propertyName].toJSON()
+
+          return
+        }
+
+        json[relation.propertyName] = []
+
+        model[relation.propertyName].forEach(relationData => {
+          if (!relationData) return
+
+          json[relation.propertyName].push(relationData.toJSON())
+        })
+      },
+    )
+
+    return json
+  }
+
+  fabricateInstance(flatData: any | any[], model: any) {
+    const setDataInInstance = (data, instance) => {
+      Object.keys(data).forEach(key => {
+        if (!instance.class.columnDictionary[key]) {
+          throw new InternalServerException(
+            `The field ${key} has not been mapped in some of your @Column annotation in ${instance.class.name} Model`,
+          )
+        }
+
+        instance[instance.class.columnDictionary[key]] = data[key]
+      })
+
+      return instance
+    }
+
+    if (Is.Array(flatData)) {
+      const modelData = []
+
+      flatData.forEach(data =>
+        modelData.push(setDataInInstance(data, new model())),
+      )
+
+      return modelData
+    }
+
+    return setDataInInstance(flatData, model)
+  }
+
   async run(model: any | any[], relations: RelationContract[]) {
     const includedRelations = ModelFactory.getIncludedRelations(relations)
 
@@ -45,7 +103,7 @@ export class ModelFactory {
 
   private async verifyModelType(data: any | any[], relation: RelationContract) {
     if (Is.Array(data)) {
-      for (let d of data) {
+      for (const d of data) {
         const index = data.indexOf(d)
 
         data[index] = await this[relation.relationType](d, relation)
