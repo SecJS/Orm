@@ -81,10 +81,10 @@ describe('\n Model Class', () => {
     await Promise.all(promises)
   })
 
-  it('should return the data from Product model with user and productDetails included', async () => {
-    const product = new Product()
+  it('should return all data from Product model with user and productDetails included', async () => {
+    const models = await Product.includes('user').includes('productDetails').findMany()
 
-    const models = await product.includes('user').includes('productDetails').findMany()
+    console.log(models[0].toJSON())
 
     expect(models[0].id).toBe(1)
     expect(models[0].userModelId).toBe(1)
@@ -97,15 +97,19 @@ describe('\n Model Class', () => {
     expect(models[0].productDetails[1].id).toBe(2)
     expect(models[0].productDetails[1].detail).toBe('Black')
     expect(models[0].productDetails[1].productModelId).toBe(1)
+  })
 
-    const productJson = models[0].toJSON()
+  it('should return one data from Product model with user and productDetails included', async () => {
+    const product = await Product.includes('user').includes('productDetails').find()
+
+    const productJson = product.toJSON()
 
     expect(productJson.id).toBe(1)
+    expect(productJson.quantity).toBe(10)
     expect(productJson.name).toBe('iPhone 10')
     expect(productJson.user.idPrimary).toBe(1)
     expect(productJson.user.name).toBe('Victor')
-    expect(productJson.productDetails[0].id).toBe(1)
-    expect(productJson.productDetails[0].detail).toBe('128 GB')
+    expect(productJson.user.email).toBe('txsoura@gmail.com')
     expect(productJson.productDetails[0].productModelId).toBe(1)
   })
 

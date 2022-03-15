@@ -1,4 +1,3 @@
-
 /**
  * @secjs/orm
  *
@@ -8,9 +7,9 @@
  * file that was distributed with this source code.
  */
 
- export class ModelPropsRecord {
+import { OmitModelMethods } from './OmitModelMethods'
 
-
-    public constructor() {}
- }
-
+/**
+ * Object from generic Type properties
+ */
+export type ModelPropsRecord<Type> = OmitModelMethods<Type>

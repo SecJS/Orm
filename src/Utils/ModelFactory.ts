@@ -7,6 +7,7 @@
  * file that was distributed with this source code.
  */
 
+import { Model } from '../Model'
 import { Is } from '@secjs/utils'
 import { DatabaseContract } from '@secjs/database'
 import { DatabaseConnection } from '../DatabaseConnection'
@@ -88,17 +89,18 @@ export class ModelFactory {
       return modelData
     }
 
-    return setDataInInstance(flatData, model)
+    return setDataInInstance(flatData, new model())
   }
 
-  async run(model: any | any[], relations: RelationContract[]) {
-    const includedRelations = ModelFactory.getIncludedRelations(relations)
+  async fabricate(flatData: any | any[], model: typeof Model) {
+    let modelData = this.fabricateInstance(flatData, model)
+    const includedRelations = ModelFactory.getIncludedRelations(model.relations)
 
     for (const includedRelation of includedRelations) {
-      model = await this.verifyModelType(model, includedRelation)
+      modelData = await this.verifyModelType(modelData, includedRelation)
     }
 
-    return model
+    return modelData
   }
 
   private async verifyModelType(data: any | any[], relation: RelationContract) {

@@ -1,4 +1,3 @@
-
 /**
  * @secjs/orm
  *
@@ -8,9 +7,12 @@
  * file that was distributed with this source code.
  */
 
- export class ModelRelationsKeys {
+import { ModelPropsKeys } from '../Model'
+import { OmitKeysOfType } from './OmitKeysOfType'
 
-
-    public constructor() {}
- }
-
+/**
+ * Relation keys from generic Type properties
+ */
+export type ModelRelationsKeys<Type> = ModelPropsKeys<
+  OmitKeysOfType<Type, string | boolean | number | Date>
+>

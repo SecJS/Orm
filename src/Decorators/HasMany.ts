@@ -14,7 +14,10 @@ import { RelationContract } from '../Contracts/RelationContract'
 /**
  * Define HasMany relationship
  */
-export function HasMany(model: () => typeof Model, options?: RelationOptions): PropertyDecorator {
+export function HasMany(
+  model: () => typeof Model,
+  options?: RelationOptions,
+): PropertyDecorator {
   return (target: any, propertyKey: string | symbol) => {
     const MainModel = target.constructor
 

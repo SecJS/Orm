@@ -1,4 +1,3 @@
-
 /**
  * @secjs/orm
  *
@@ -8,9 +7,10 @@
  * file that was distributed with this source code.
  */
 
- export class OmitModelMethods {
-
-
-    public constructor() {}
- }
-
+/**
+ * Type with only the keys from This. Example: 'id' | 'name'
+ */
+export type OmitModelMethods<Type> = Omit<
+  Type,
+  'save' | 'load' | 'toJSON' /* keyof Model */
+>

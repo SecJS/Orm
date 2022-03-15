@@ -7,56 +7,17 @@
  * file that was distributed with this source code.
  */
 
-import { String } from '@secjs/utils'
 import { DatabaseContract } from '@secjs/database'
 import { ModelFactory } from './Utils/ModelFactory'
+import { ModelPropsKeys } from './Types/ModelPropsKeys'
+import { ModelPropsJson } from './Types/ModelPropsJson'
+import { PaginatedResponse, String } from '@secjs/utils'
 import { DatabaseConnection } from './DatabaseConnection'
 import { InternalServerException } from '@secjs/exceptions'
 import { ColumnContract } from './Contracts/ColumnContract'
+import { ModelPropsRecord } from './Types/ModelPropsRecord'
+import { ModelRelationsKeys } from './Types/ModelRelationsKeys'
 import { RelationContract } from './Contracts/RelationContract'
-
-/**
- * Omit keys of type when the key type is from the specified type
- */
-type OmitTypes<
-  This,
-  Types,
-  WithNever = {
-    [Key in keyof This]: Exclude<This[Key], undefined> extends Types
-      ? never
-      : This[Key] extends Record<string, unknown>
-      ? OmitTypes<This[Key], Types>
-      : This[Key]
-  }
-> = Pick<
-  WithNever,
-  {
-    [K in keyof WithNever]: WithNever[K] extends never ? never : K
-  }[keyof WithNever]
->
-
-/**
- * Omit all the methods from Model class. Example: 'find' | 'findMany'
- */
-export type OmittedModelMethods = keyof Model
-
-/**
- * Type with only the keys from This. Example: 'id' | 'name'
- */
-export type ModelPropsKeys<This> = keyof Omit<This, OmittedModelMethods> &
-  string
-
-/**
- * Type of Record from This. Example: Record<'id' | 'name', any>
- */
-export type ModelPropsRecord<This> = Record<ModelPropsKeys<This>, any>
-
-/**
- * Type with only the relations from This. Example: 'user' | 'productDetails'
- */
-export type ModelRelationsKeys<This> = ModelPropsKeys<
-  OmitTypes<This, string | boolean | number | Date>
->
 
 export abstract class Model {
   /** The name of the table in Database */
@@ -74,19 +35,11 @@ export abstract class Model {
   /** All the model relations mapped */
   static relations: RelationContract[]
 
-  private DB: DatabaseContract
-  private modelFactory: ModelFactory
+  static DB: DatabaseContract
+  static Factory: ModelFactory
 
-  constructor() {
-    const table = this.class.table
-    const connection = this.class.connection
-
-    this.modelFactory = new ModelFactory(connection)
-    this.DB = new DatabaseConnection().getDatabase(connection).buildTable(table)
-  }
-
-  protected get class(): any {
-    return this.constructor
+  protected get class(): typeof Model {
+    return this.constructor as typeof Model
   }
 
   static boot() {
@@ -100,6 +53,9 @@ export abstract class Model {
     this.defineStatic('columnDictionary', {})
     this.defineStatic('connection', 'default')
     this.defineStatic('table', String.toSnakeCase(String.pluralize(this.name)))
+
+    this.Factory = new ModelFactory(this.connection)
+    this.DB = new DatabaseConnection().getDatabase(this.connection)
   }
 
   static addColumn(column: ColumnContract) {
@@ -123,106 +79,95 @@ export abstract class Model {
     this.relations.push(relation)
   }
 
-  private static defineStatic(propName: string, value: any) {
-    if (this[propName]) return
+  static async find<Class extends typeof Model>(
+    this: Class,
+  ): Promise<InstanceType<Class>> {
+    const flatData = await this.DB.buildTable(this.table).find()
 
-    this[propName] = value
+    return this.Factory.fabricate(flatData, this)
   }
 
-  /**
-   * Database Methods
-   */
+  static async findMany<Class extends typeof Model>(
+    this: Class,
+  ): Promise<InstanceType<Class>[]> {
+    const flatData = await this.DB.buildTable(this.table).findMany()
 
-  toJSON(): ModelPropsRecord<this> {
-    return this.modelFactory.fabricateJson(this)
+    return this.Factory.fabricate(flatData, this)
   }
 
-  async find(): Promise<this> {
-    const flatData = await this.DB.find()
-
-    this.modelFactory.fabricateInstance(flatData, this)
-
-    return this.modelFactory.run(this, this.class.relations)
-  }
-
-  async findMany(): Promise<this[]> {
-    const flatData = await this.DB.findMany()
-
-    const modelData = this.modelFactory.fabricateInstance(flatData, this.class)
-
-    return this.modelFactory.run(modelData, this.class.relations)
-  }
-
-  async paginate(page: number, limit: number, resourceUrl = '/') {
+  static async paginate<Class extends typeof Model>(
+    this: Class,
+    page: number,
+    limit: number,
+    resourceUrl = '/',
+  ): Promise<PaginatedResponse<InstanceType<Class>>> {
     const { data, meta, links } = await this.DB.paginate(
       page,
       limit,
       resourceUrl,
     )
 
-    const modelData = this.modelFactory.fabricateInstance(data, this.class)
-
     return {
       meta,
       links,
-      data: await this.modelFactory.run(modelData, this.class.relations),
+      data: await this.Factory.fabricate(data, this),
     }
   }
 
-  async forPage(page: number, limit: number) {
-    const data = await this.DB.forPage(page, limit)
+  static async forPage<Class extends typeof Model>(
+    this: Class,
+    page: number,
+    limit: number,
+  ): Promise<InstanceType<Class>[]> {
+    const flatData = await this.DB.forPage(page, limit)
 
-    const modelData = this.modelFactory.fabricateInstance(data, this.class)
-
-    return this.modelFactory.run(modelData, this.class.relations)
+    return this.Factory.fabricate(flatData, this)
   }
 
-  async create(values: ModelPropsRecord<this>): Promise<this> {
+  static async create<Class extends typeof Model>(
+    this: Class,
+    values: ModelPropsRecord<InstanceType<Class>>,
+  ): Promise<InstanceType<Class>> {
     const [id] = await this.DB.insert(values)
 
     return this.where('id', id).find()
   }
 
-  async update(
-    key: ModelPropsKeys<this> | ModelPropsRecord<this>,
-    value?: ModelPropsRecord<this>,
-  ): Promise<this> {
+  static async update<Class extends typeof Model>(
+    this: Class,
+    key:
+      | ModelPropsKeys<InstanceType<Class>>
+      | ModelPropsRecord<InstanceType<Class>>,
+    value?: ModelPropsRecord<InstanceType<Class>>,
+  ): Promise<InstanceType<Class>> {
     const [id] = await this.DB.update(key, value)
 
     return this.where('id', id).find()
   }
 
-  async delete(): Promise<void> {
+  static async delete(): Promise<void> {
     await this.DB.delete()
   }
 
-  /**
-   * Builder Methods
-   */
-
-  // select(...columns: ModelPropsKeys<this>[]): this {
-  //   this.DB.buildSelect(...(columns as string[]))
-  //
-  //   return this
-  // }
-  //
-  // distinct(...columns: ModelPropsKeys<this>[]): this {
-  //   this.DB.buildDistinct(...(columns as string[]))
-  //
-  //   return this
-  // }
-
-  where(
-    statement: string | ModelPropsKeys<this> | ModelPropsRecord<this>,
+  static where<Class extends typeof Model>(
+    this: Class,
+    statement:
+      | string
+      | ModelPropsKeys<InstanceType<Class>>
+      | ModelPropsRecord<InstanceType<Class>>,
     value?: any,
-  ): this {
+  ): Class {
+    // @ts-ignore
     this.DB.buildWhere(statement, value)
 
     return this
   }
 
-  includes(relationName: ModelRelationsKeys<this>): this {
-    const relation = this.class.relations.find(
+  static includes<Class extends typeof Model>(
+    this: Class,
+    relationName: ModelRelationsKeys<InstanceType<Class>>,
+  ): Class {
+    const relation = this.relations.find(
       relation => relation.propertyName === relationName,
     )
 
@@ -234,41 +179,51 @@ export abstract class Model {
 
     relation.isIncluded = true
 
-    const index = this.class.relations.indexOf(relation)
-    this.class.relations[index] = relation
+    const index = this.relations.indexOf(relation)
+    this.relations[index] = relation
 
     return this
   }
 
-  groupBy(...columns: ModelPropsKeys<this>[]): this {
+  static groupBy<Class extends typeof Model>(
+    this: Class,
+    ...columns: ModelPropsKeys<InstanceType<Class>>[]
+  ): Class {
     // @ts-ignore
     this.DB.buildGroupBy(...columns)
 
     return this
   }
 
-  orderBy(column: ModelPropsKeys<this>, direction: 'asc' | 'desc'): this {
+  static orderBy<Class extends typeof Model>(
+    this: Class,
+    ...columns: ModelPropsKeys<InstanceType<Class>>[]
+  ): Class {
     // @ts-ignore
-    this.DB.buildOrderBy(column, direction)
+    this.DB.buildOrderBy(...columns)
 
     return this
   }
 
-  // having(column: string, operator: string, value: string): this {
-  //   this.DB.buildHaving(column, operator, value)
-  //
-  //   return this
-  // }
-
-  skip(number: number): this {
+  static skip<Class extends typeof Model>(this: Class, number: number): Class {
     this.DB.buildSkip(number)
 
     return this
   }
 
-  limit(number: number): this {
+  static limit<Class extends typeof Model>(this: Class, number: number): Class {
     this.DB.buildLimit(number)
 
     return this
+  }
+
+  private static defineStatic(propName: string, value: any) {
+    if (this[propName]) return
+
+    this[propName] = value
+  }
+
+  toJSON(): ModelPropsJson<this> {
+    return this.class.Factory.fabricateJson(this)
   }
 }
