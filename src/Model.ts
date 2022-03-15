@@ -20,28 +20,61 @@ import { ModelRelationsKeys } from './Types/ModelRelationsKeys'
 import { RelationContract } from './Contracts/RelationContract'
 
 export abstract class Model {
-  /** The name of the table in Database */
+  /**
+   * The name of the table in Database
+   */
   static table: string
-  /** The boolean that defines if this model has been already booted */
+
+  /**
+   * The boolean that defines if this model has been already booted
+   */
   static booted: boolean
-  /** The database connection that this Model will work */
+
+  /**
+   * The database connection that this Model will work
+   */
   static connection: string
-  /** The primary key to build relationships across models */
+
+  /**
+   * The primary key to build relationships across models
+   */
   static primaryKey: string
-  /** All the model columns mapped */
+
+  /**
+   * All the model columns mapped
+   */
   static columns: ColumnContract[]
-  /** Dictionary to specify the column name in database to class property */
+
+  /**
+   * Dictionary to specify the column name in database to class property
+   */
   static columnDictionary: Record<string, string>
-  /** All the model relations mapped */
+
+  /**
+   * All the model relations mapped
+   */
   static relations: RelationContract[]
 
-  static DB: DatabaseContract
-  static Factory: ModelFactory
+  /**
+   * DB to handle all data operations
+   */
+  private static DB: DatabaseContract
 
+  /**
+   * Factory to fabricate all instances from DB data
+   */
+  private static Factory: ModelFactory
+
+  /**
+   * Get the subclass constructor. Example: Product, User, etc
+   */
   protected get class(): typeof Model {
     return this.constructor as typeof Model
   }
 
+  /**
+   * Boot static properties inside subclass constructor instead of Model
+   */
   static boot() {
     if (this.booted) return
 
@@ -58,6 +91,9 @@ export abstract class Model {
     this.DB = new DatabaseConnection().getDatabase(this.connection)
   }
 
+  /**
+   * Add a new column inside subclass constructor
+   */
   static addColumn(column: ColumnContract) {
     if (this.primaryKey === column.columnName) {
       column.isPrimary = true
@@ -67,6 +103,9 @@ export abstract class Model {
     this.columnDictionary[column.columnName] = column.propertyName
   }
 
+  /**
+   * Add a new relation inside subclass constructor
+   */
   static addRelation(relation: RelationContract) {
     switch (relation.relationType) {
       case 'belongsTo':
@@ -79,6 +118,9 @@ export abstract class Model {
     this.relations.push(relation)
   }
 
+  /**
+   * Get one data in DB and return as a subclass instance
+   */
   static async find<Class extends typeof Model>(
     this: Class,
   ): Promise<InstanceType<Class>> {
@@ -87,6 +129,9 @@ export abstract class Model {
     return this.Factory.fabricate(flatData, this)
   }
 
+  /**
+   * Get many data in DB and return as an array of subclass instance
+   */
   static async findMany<Class extends typeof Model>(
     this: Class,
   ): Promise<InstanceType<Class>[]> {
@@ -95,6 +140,10 @@ export abstract class Model {
     return this.Factory.fabricate(flatData, this)
   }
 
+  /**
+   * Get many data paginated in DB and return with meta, links
+   * and an array of subclass instance
+   */
   static async paginate<Class extends typeof Model>(
     this: Class,
     page: number,
@@ -114,6 +163,9 @@ export abstract class Model {
     }
   }
 
+  /**
+   * Get many data paginated in DB and return an array of subclass instance
+   */
   static async forPage<Class extends typeof Model>(
     this: Class,
     page: number,
@@ -124,6 +176,9 @@ export abstract class Model {
     return this.Factory.fabricate(flatData, this)
   }
 
+  /**
+   * Create a new model in DB and return as a subclass instance
+   */
   static async create<Class extends typeof Model>(
     this: Class,
     values: ModelPropsRecord<InstanceType<Class>>,
@@ -133,6 +188,9 @@ export abstract class Model {
     return this.where('id', id).find()
   }
 
+  /**
+   * Update a model in DB and return as a subclass instance
+   */
   static async update<Class extends typeof Model>(
     this: Class,
     key:
@@ -145,10 +203,17 @@ export abstract class Model {
     return this.where('id', id).find()
   }
 
+  /**
+   * Delete a model in DB
+   */
   static async delete(): Promise<void> {
     await this.DB.delete()
   }
 
+  /**
+   * Build a where query to be used inside other Model methods. You can
+   * call this method as many times as you want
+   */
   static where<Class extends typeof Model>(
     this: Class,
     statement:
@@ -163,6 +228,10 @@ export abstract class Model {
     return this
   }
 
+  /**
+   * Build a join query to be used inside other Model methods. You can
+   * call this method as many times as you want
+   */
   static includes<Class extends typeof Model>(
     this: Class,
     relationName: ModelRelationsKeys<InstanceType<Class>>,
@@ -185,6 +254,10 @@ export abstract class Model {
     return this
   }
 
+  /**
+   * Build a groupBy query to be used inside other Model methods. You can
+   * call this method as many times as you want
+   */
   static groupBy<Class extends typeof Model>(
     this: Class,
     ...columns: ModelPropsKeys<InstanceType<Class>>[]
@@ -195,6 +268,10 @@ export abstract class Model {
     return this
   }
 
+  /**
+   * Build a orderBy query to be used inside other Model methods. You can
+   * call this method as many times as you want
+   */
   static orderBy<Class extends typeof Model>(
     this: Class,
     ...columns: ModelPropsKeys<InstanceType<Class>>[]
@@ -205,24 +282,38 @@ export abstract class Model {
     return this
   }
 
+  /**
+   * Build a skip query to be used inside other Model methods. You can
+   * call this method as many times as you want
+   */
   static skip<Class extends typeof Model>(this: Class, number: number): Class {
     this.DB.buildSkip(number)
 
     return this
   }
 
+  /**
+   * Build a limit query to be used inside other Model methods. You can
+   * call this method as many times as you want
+   */
   static limit<Class extends typeof Model>(this: Class, number: number): Class {
     this.DB.buildLimit(number)
 
     return this
   }
 
+  /**
+   * Define the static property only if it is not already defined
+   */
   private static defineStatic(propName: string, value: any) {
     if (this[propName]) return
 
     this[propName] = value
   }
 
+  /**
+   * Return a Json object from the actual subclass instance
+   */
   toJSON(): ModelPropsJson<this> {
     return this.class.Factory.fabricateJson(this)
   }
