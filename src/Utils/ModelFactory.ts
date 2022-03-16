@@ -9,16 +9,15 @@
 
 import { Model } from '../Model'
 import { Is } from '@secjs/utils'
-import { DatabaseContract } from '@secjs/database'
-import { DatabaseConnection } from '../DatabaseConnection'
 import { InternalServerException } from '@secjs/exceptions'
+import { Database, DatabaseContract } from '@secjs/database'
 import { RelationContract } from '../Contracts/RelationContract'
 
 export class ModelFactory {
   private DB: DatabaseContract
 
   constructor(connection: string) {
-    this.DB = new DatabaseConnection().getDatabase(connection)
+    this.DB = new Database().connection(connection)
   }
 
   private static getIncludedRelations(relations: RelationContract[]) {

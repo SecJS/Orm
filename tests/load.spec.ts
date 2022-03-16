@@ -34,8 +34,10 @@ describe('\n Load Model Class', () => {
     expect(UserModel.connection).toBe('default')
 
     expect(UserModel.columns[0].isPrimary).toBe(true)
-    expect(UserModel.columns[0].columnName).toBe('idPrimary')
+    expect(UserModel.columns[0].columnName).toBe('id')
+    expect(UserModel.columns[0].propertyName).toBe('idPrimary')
     expect(UserModel.columns[1].isPrimary).toBe(false)
     expect(UserModel.columns[1].columnName).toBe('name')
+    expect(UserModel.columns[1].propertyName).toBe('name')
   })
 })

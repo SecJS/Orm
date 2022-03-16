@@ -14,6 +14,7 @@ import { HasMany } from '../../../src/Decorators/HasMany'
 
 export class UserModel extends Model {
   static table = 'users'
+  static connection = 'default'
   static primaryKey = 'idPrimary'
 
   @Column({ columnName: 'id' })

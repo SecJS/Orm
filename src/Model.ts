@@ -7,15 +7,14 @@
  * file that was distributed with this source code.
  */
 
-import { DatabaseContract } from '@secjs/database'
 import { ModelFactory } from './Utils/ModelFactory'
 import { ModelPropsKeys } from './Types/ModelPropsKeys'
 import { ModelPropsJson } from './Types/ModelPropsJson'
 import { PaginatedResponse, String } from '@secjs/utils'
-import { DatabaseConnection } from './DatabaseConnection'
 import { InternalServerException } from '@secjs/exceptions'
 import { ColumnContract } from './Contracts/ColumnContract'
 import { ModelPropsRecord } from './Types/ModelPropsRecord'
+import { Database, DatabaseContract } from '@secjs/database'
 import { ModelRelationsKeys } from './Types/ModelRelationsKeys'
 import { RelationContract } from './Contracts/RelationContract'
 
@@ -58,12 +57,30 @@ export abstract class Model {
   /**
    * DB to handle all data operations
    */
-  private static DB: DatabaseContract
+  private static _DB: DatabaseContract
+
+  private static get DB(): DatabaseContract {
+    if (!this._DB) {
+      this._DB = new Database()
+        .connection(this.connection)
+        .buildTable(this.table)
+    }
+
+    return this._DB
+  }
 
   /**
    * Factory to fabricate all instances from DB data
    */
-  private static Factory: ModelFactory
+  private static _Factory: ModelFactory
+
+  private static get Factory(): ModelFactory {
+    if (!this._Factory) {
+      this._Factory = new ModelFactory(this.connection)
+    }
+
+    return this._Factory
+  }
 
   /**
    * Get the subclass constructor. Example: Product, User, etc
@@ -86,16 +103,13 @@ export abstract class Model {
     this.defineStatic('columnDictionary', {})
     this.defineStatic('connection', 'default')
     this.defineStatic('table', String.toSnakeCase(String.pluralize(this.name)))
-
-    this.Factory = new ModelFactory(this.connection)
-    this.DB = new DatabaseConnection().getDatabase(this.connection)
   }
 
   /**
    * Add a new column inside subclass constructor
    */
   static addColumn(column: ColumnContract) {
-    if (this.primaryKey === column.columnName) {
+    if (this.primaryKey === column.propertyName) {
       column.isPrimary = true
     }
 
@@ -124,7 +138,7 @@ export abstract class Model {
   static async find<Class extends typeof Model>(
     this: Class,
   ): Promise<InstanceType<Class>> {
-    const flatData = await this.DB.buildTable(this.table).find()
+    const flatData = await this.DB.find()
 
     return this.Factory.fabricate(flatData, this)
   }
@@ -135,7 +149,7 @@ export abstract class Model {
   static async findMany<Class extends typeof Model>(
     this: Class,
   ): Promise<InstanceType<Class>[]> {
-    const flatData = await this.DB.buildTable(this.table).findMany()
+    const flatData = await this.DB.findMany()
 
     return this.Factory.fabricate(flatData, this)
   }
