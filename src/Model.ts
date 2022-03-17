@@ -424,30 +424,6 @@ export abstract class Model {
     }, [])
   }
 
-  private static getCreatedAtColumns(): ColumnContract[] {
-    return this.columns.reduce((columns, column) => {
-      if (column.isCreatedAt) columns.push(column)
-
-      return columns
-    }, [])
-  }
-
-  private static getUpdatedAtColumns(): ColumnContract[] {
-    return this.columns.reduce((columns, column) => {
-      if (column.isUpdatedAt) columns.push(column)
-
-      return columns
-    }, [])
-  }
-
-  private static getDeletedAtColumns(): ColumnContract[] {
-    return this.columns.reduce((columns, column) => {
-      if (column.isDeletedAt) columns.push(column)
-
-      return columns
-    }, [])
-  }
-
   private static reverseColumnDictionary() {
     const reserveDictionary: any = {}
 
