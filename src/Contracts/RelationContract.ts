@@ -9,6 +9,7 @@
 
 import { Model } from '../Model'
 
+// TODO Create an RelationContract and RelationOptions for each relation type
 export interface RelationContract {
   model?: () => typeof Model
   primaryKey?: string
