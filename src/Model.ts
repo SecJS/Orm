@@ -169,7 +169,7 @@ export abstract class Model {
     page: number,
     limit: number,
     resourceUrl = '/',
-  ): Promise<PaginatedResponse<InstanceType<Class>>> {
+  ): Promise<PaginatedResponse<InstanceType<Class>[]>> {
     const { data, meta, links } = await this.DB.paginate(
       page,
       limit,
@@ -354,20 +354,6 @@ export abstract class Model {
 
     const index = this.relations.indexOf(relation)
     this.relations[index] = relation
-
-    return this
-  }
-
-  /**
-   * Build a groupBy query to be used inside other Model methods. You can
-   * call this method as many times as you want
-   */
-  static groupBy<Class extends typeof Model>(
-    this: Class,
-    ...columns: ModelPropsKeys<InstanceType<Class>>[]
-  ): Class {
-    // @ts-ignore
-    this.DB.buildGroupBy(...columns)
 
     return this
   }

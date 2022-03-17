@@ -160,6 +160,39 @@ describe('\n Model Class', () => {
     expect(products[0].name).toBe('iPhone 11')
   })
 
+  it('should be able to get Product paginated using skip and limit', async () => {
+    const products = await Product.skip(0).limit(1).findMany()
+
+    expect(products.length).toBe(1)
+    expect(products[0].id).toBe(1)
+    expect(products[0].name).toBe('iPhone 10')
+  })
+
+  it('should be able to get Product paginated using forPage', async () => {
+    const products = await Product.forPage(0, 1)
+
+    expect(products.length).toBe(1)
+    expect(products[0].id).toBe(1)
+    expect(products[0].name).toBe('iPhone 10')
+  })
+
+  it('should be able to get Product paginated with paginated response', async () => {
+    const { meta, links, data } = await Product.paginate(0, 1, '/products')
+
+    expect(meta.itemCount).toBe(1)
+    expect(meta.totalItems).toBe(3)
+    expect(meta.totalPages).toBe(3)
+    expect(meta.currentPage).toBe(0)
+    expect(meta.itemsPerPage).toBe(1)
+    expect(links.first).toBe('/products?limit=1')
+    expect(links.previous).toBe('/products?page=0&limit=1')
+    expect(links.next).toBe('/products?page=1&limit=1')
+    expect(links.last).toBe('/products?page=3&limit=1')
+    expect(data.length).toBe(1)
+    expect(data[0].id).toBe(1)
+    expect(data[0].name).toBe('iPhone 10')
+  })
+
   afterEach(async () => {
     await TestDataHandler.dropTables()
   })
