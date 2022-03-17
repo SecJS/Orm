@@ -45,6 +45,8 @@ describe('\n Model Class', () => {
     expect(productJson.id).toBe(4)
     expect(productJson.quantity).toBe(5)
     expect(productJson.name).toBe('Macbook Pro 2020')
+    expect(productJson.createdAt).toBeTruthy()
+    expect(productJson.updatedAt).toBeTruthy()
   })
 
   it('should be able to update a product', async () => {
@@ -65,6 +67,8 @@ describe('\n Model Class', () => {
     expect(productJson.id).toBe(4)
     expect(productJson.quantity).toBe(10)
     expect(productJson.name).toBe('Macbook Pro 2021')
+    expect(productJson.createdAt).toBeTruthy()
+    expect(productJson.updatedAt).toBeTruthy()
   })
 
   it('should be able to delete a product', async () => {
@@ -147,6 +151,13 @@ describe('\n Model Class', () => {
     expect(userJson.$extras[0].id).toBe(1)
     expect(userJson.$extras[0].users_id).toBe(userJson.idPrimary)
     expect(userJson.$extras[0].roles_id).toBe(1)
+  })
+
+  it('should get all data from Product only where quantity is 10 and orderBy name', async () => {
+    const products = await Product.where({ quantity: 10 }).orderBy('name', 'desc').findMany()
+
+    expect(products.length).toBe(2)
+    expect(products[0].name).toBe('iPhone 11')
   })
 
   afterEach(async () => {

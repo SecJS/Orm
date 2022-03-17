@@ -378,10 +378,19 @@ export abstract class Model {
    */
   static orderBy<Class extends typeof Model>(
     this: Class,
-    ...columns: ModelPropsKeys<InstanceType<Class>>[]
+    column: ModelPropsKeys<InstanceType<Class>>,
+    direction: 'asc' | 'desc' | 'ASC' | 'DESC',
   ): Class {
+    const reverseDictionary = this.reverseColumnDictionary()
+
+    column = reverseDictionary[column]
+
+    if (direction === 'ASC' || direction === 'DESC') {
+      direction = direction.toLowerCase() as any
+    }
+
     // @ts-ignore
-    this.DB.buildOrderBy(...columns)
+    this.DB.buildOrderBy(column, direction)
 
     return this
   }

@@ -91,13 +91,13 @@ export class TestDataHandler {
         userId: userId,
       },
       {
-        name: 'iPhone 10',
+        name: 'iPhone 11',
         quantity: 10,
         userId: userId,
       },
       {
-        name: 'iPhone 10',
-        quantity: 10,
+        name: 'iPhone 12',
+        quantity: 11,
         userId: userId,
       },
     ])
