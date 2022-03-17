@@ -10,7 +10,9 @@
 export interface ColumnOptions {
   isPrimary?: boolean
   columnName?: string
-  propertyName?: string
+  isCreatedAt?: boolean
+  isUpdatedAt?: boolean
+  isDeletedAt?: boolean
   // serialize?: any
   // serializeAs?: any
   // prepare?: (value: any) => void

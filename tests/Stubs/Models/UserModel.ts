@@ -28,15 +28,15 @@ export class UserModel extends Model {
   @Column()
   public email: string
 
-  @Column()
+  @Column({ isCreatedAt: true })
   public createdAt: Date
 
-  @Column()
+  @Column({ isUpdatedAt: true })
   public updatedAt: Date
 
   @HasMany(() => Product)
   public products: Product[]
 
-  @ManyToMany(() => Role)
+  @ManyToMany(() => Role, { pivotTableName: 'users_roles' })
   public roles: Role[]
 }

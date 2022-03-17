@@ -24,10 +24,10 @@ export class Product extends Model {
   @Column()
   public quantity: number
 
-  @Column()
+  @Column({ isCreatedAt: true })
   public createdAt: Date
 
-  @Column()
+  @Column({ isUpdatedAt: true })
   public updatedAt: Date
 
   @Column({ columnName: 'userId' })

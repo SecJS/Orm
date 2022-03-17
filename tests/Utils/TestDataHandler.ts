@@ -60,6 +60,7 @@ export class TestDataHandler {
       tableBuilder.increments('id').primary()
       tableBuilder.string('detail').nullable()
       tableBuilder.timestamps(true, true, true)
+      tableBuilder.timestamp('deletedAt')
       tableBuilder.integer('productId').references('id').inTable('products')
     })
   }

@@ -10,11 +10,8 @@
 import { ColumnOptions } from '../Contracts/ColumnOptions'
 
 /**
- * Define database column
+ * Define database Column
  */
-// TODO Criar decorator CreatedAtColumn, UpdatedAtColumn e DeletedAtColumn.
-// Eles terão o mesmo comportamento de column porem vão definir
-// valores padrões no create, update e delete da model
 export function Column(options?: ColumnOptions): PropertyDecorator {
   return (target: any, propertyKey: string | symbol) => {
     const Model = target.constructor
@@ -25,6 +22,9 @@ export function Column(options?: ColumnOptions): PropertyDecorator {
         isPrimary: false,
         columnName: propertyKey,
         propertyName: String(propertyKey),
+        isCreatedAt: false,
+        isUpdatedAt: false,
+        isDeletedAt: false,
       },
       options,
     )

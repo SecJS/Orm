@@ -19,11 +19,14 @@ export class ProductDetail extends Model {
   @Column()
   public detail: string
 
-  @Column()
+  @Column({ isCreatedAt: true })
   public createdAt: Date
 
-  @Column()
+  @Column({ isUpdatedAt: true })
   public updatedAt: Date
+
+  @Column({ isDeletedAt: true })
+  public deletedAt: Date
 
   @Column({ columnName: 'productId' })
   public productModelId: number

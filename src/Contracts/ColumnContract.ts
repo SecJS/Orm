@@ -11,4 +11,7 @@ export interface ColumnContract {
   isPrimary?: boolean
   columnName?: string
   propertyName?: string
+  isCreatedAt?: boolean
+  isUpdatedAt?: boolean
+  isDeletedAt?: boolean
 }

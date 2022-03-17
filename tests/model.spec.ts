@@ -12,6 +12,7 @@ import { Product } from './Stubs/Models/Product'
 import { UserModel } from './Stubs/Models/UserModel'
 import { TestDataHandler } from './Utils/TestDataHandler'
 import { Database, DatabaseContract } from '@secjs/database'
+import { ProductDetail } from './Stubs/Models/ProductDetail'
 
 describe('\n Model Class', () => {
   let DB: DatabaseContract
@@ -65,6 +66,42 @@ describe('\n Model Class', () => {
     expect(productJson.id).toBe(4)
     expect(productJson.quantity).toBe(10)
     expect(productJson.name).toBe('Macbook Pro 2021')
+  })
+
+  it('should be able to delete a product', async () => {
+    const { idPrimary } = await UserModel.find()
+
+    const { id } = await Product.create({
+      name: 'Macbook Pro 2020',
+      quantity: 10,
+      userModelId: idPrimary,
+    })
+
+    const notSoftDeleted = await Product.where('id', id).delete()
+    expect(notSoftDeleted).toBeFalsy()
+
+    const deletedProduct = await Product.where('id', id).find()
+    expect(deletedProduct).toBeFalsy()
+  })
+
+  it('should be able to soft delete a product detail', async () => {
+    const { idPrimary } = await UserModel.find()
+
+    const { id } = await Product.create({
+      name: 'Macbook Pro 2020',
+      quantity: 10,
+      userModelId: idPrimary,
+    })
+
+    const productDetail = await ProductDetail.create({
+      detail: 'M1',
+      productModelId: id,
+    })
+
+    const softDeletedProduct = await ProductDetail.where({ id: productDetail.id }).delete()
+
+    expect(softDeletedProduct).toBeTruthy()
+    expect(softDeletedProduct.deletedAt).toBeTruthy()
   })
 
   it('should return all data from Product model with user and productDetails included', async () => {

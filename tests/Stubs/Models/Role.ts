@@ -22,10 +22,10 @@ export class Role extends Model {
   @Column()
   public description: string
 
-  @Column()
+  @Column({ isCreatedAt: true })
   public createdAt: Date
 
-  @Column()
+  @Column({ isUpdatedAt: true })
   public updatedAt: Date
 
   @ManyToMany(() => UserModel)

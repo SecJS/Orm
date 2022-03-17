@@ -138,6 +138,10 @@ export abstract class Model {
   ): Promise<InstanceType<Class>> {
     const flatData = await this.DB.find()
 
+    if (!flatData) {
+      return null
+    }
+
     return this.Factory.fabricate(flatData, this)
   }
 
@@ -148,6 +152,10 @@ export abstract class Model {
     this: Class,
   ): Promise<InstanceType<Class>[]> {
     const flatData = await this.DB.findMany()
+
+    if (!flatData || !flatData.length) {
+      return []
+    }
 
     return this.Factory.fabricate(flatData, this)
   }
@@ -203,6 +211,17 @@ export abstract class Model {
       columnValues[reverseDictionary[key]] = values[key]
     })
 
+    const createdAtColumns = this.getCreatedAtColumns()
+    const updatedAtColumns = this.getUpdatedAtColumns()
+
+    createdAtColumns.forEach(column => {
+      columnValues[column.columnName] = new Date()
+    })
+
+    updatedAtColumns.forEach(column => {
+      columnValues[column.columnName] = new Date()
+    })
+
     const [id] = await this.DB.insert(columnValues, primaryKey)
 
     return this.where(primaryKey, id).find()
@@ -218,24 +237,39 @@ export abstract class Model {
       | ModelPropsRecord<InstanceType<Class>>,
     value?: any,
   ): Promise<InstanceType<Class>> {
-    const columnValues: any = {}
     const reverseDictionary = this.reverseColumnDictionary()
     const primaryKey = reverseDictionary[this.primaryKey]
 
     if (Is.Object(key)) {
+      const columnValues: any = {}
+
       Object.keys(key).forEach(k => {
         columnValues[reverseDictionary[k]] = key[k]
       })
 
-      const [id] = await this.DB.update(key, primaryKey)
+      const updatedAtColumns = this.getUpdatedAtColumns()
+
+      updatedAtColumns.forEach(column => {
+        columnValues[column.columnName] = new Date()
+      })
+
+      const [id] = await this.DB.update(columnValues, primaryKey)
 
       return this.where(primaryKey, id).find()
     }
 
     if (Is.String(key)) {
-      key = reverseDictionary[key]
+      const columnValues: any = {}
 
-      const [id] = await this.DB.update(key, value, primaryKey)
+      columnValues[reverseDictionary[key]] = value
+
+      const updatedAtColumns = this.getUpdatedAtColumns()
+
+      updatedAtColumns.forEach(column => {
+        columnValues[column.columnName] = new Date()
+      })
+
+      const [id] = await this.DB.update(columnValues, primaryKey)
 
       return this.where(primaryKey, id).find()
     }
@@ -244,7 +278,21 @@ export abstract class Model {
   /**
    * Delete a model in DB
    */
-  static async delete(): Promise<void> {
+  static async delete<Class extends typeof Model>(
+    this: Class,
+  ): Promise<InstanceType<Class>> {
+    const deletedAtColumns = this.getDeletedAtColumns()
+
+    if (deletedAtColumns.length) {
+      const values = {}
+
+      deletedAtColumns.forEach(column => {
+        values[column.columnName] = new Date()
+      })
+
+      return this.update(values)
+    }
+
     await this.DB.delete()
   }
 
@@ -372,6 +420,30 @@ export abstract class Model {
       }
 
       return included
+    }, [])
+  }
+
+  private static getCreatedAtColumns(): ColumnContract[] {
+    return this.columns.reduce((columns, column) => {
+      if (column.isCreatedAt) columns.push(column)
+
+      return columns
+    }, [])
+  }
+
+  private static getUpdatedAtColumns(): ColumnContract[] {
+    return this.columns.reduce((columns, column) => {
+      if (column.isUpdatedAt) columns.push(column)
+
+      return columns
+    }, [])
+  }
+
+  private static getDeletedAtColumns(): ColumnContract[] {
+    return this.columns.reduce((columns, column) => {
+      if (column.isDeletedAt) columns.push(column)
+
+      return columns
     }, [])
   }
 
