@@ -10,6 +10,7 @@
 export interface ColumnOptions {
   isPrimary?: boolean
   columnName?: string
+  defaultValue?: any
   isCreatedAt?: boolean
   isUpdatedAt?: boolean
   isDeletedAt?: boolean

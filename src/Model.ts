@@ -203,26 +203,41 @@ export abstract class Model {
     this: Class,
     values: ModelPropsRecord<InstanceType<Class>>,
   ): Promise<InstanceType<Class>> {
-    const columnValues: any = {}
+    const createObject: any = {}
     const reverseDictionary = this.reverseColumnDictionary()
     const primaryKey = reverseDictionary[this.primaryKey]
 
     Object.keys(values).forEach(key => {
-      columnValues[reverseDictionary[key]] = values[key]
+      createObject[reverseDictionary[key]] = values[key]
     })
 
-    const createdAtColumns = this.getCreatedAtColumns()
-    const updatedAtColumns = this.getUpdatedAtColumns()
+    // Used for createdAt and updatedAt
+    const date = new Date()
 
-    createdAtColumns.forEach(column => {
-      columnValues[column.columnName] = new Date()
+    this.columns.forEach(c => {
+      // Set createdAt only if it does not exist in createObject
+      if (c.isCreatedAt && !createObject[c.columnName]) {
+        createObject[c.columnName] = date
+
+        return
+      }
+
+      // Set updatedAt only if it does not exist in createObject
+      if (c.isUpdatedAt && !createObject[c.columnName]) {
+        createObject[c.columnName] = date
+
+        return
+      }
+
+      // Set the default value of the column only if it does not exist in createObject, and it's not a PK
+      if (!c.isPrimary && !createObject[c.columnName]) {
+        createObject[c.columnName] = c.defaultValue
+
+        return
+      }
     })
 
-    updatedAtColumns.forEach(column => {
-      columnValues[column.columnName] = new Date()
-    })
-
-    const [id] = await this.DB.insert(columnValues, primaryKey)
+    const [id] = await this.DB.insert(createObject, primaryKey)
 
     return this.where(primaryKey, id).find()
   }
@@ -237,42 +252,30 @@ export abstract class Model {
       | ModelPropsRecord<InstanceType<Class>>,
     value?: any,
   ): Promise<InstanceType<Class>> {
+    const updateObject: any = {}
     const reverseDictionary = this.reverseColumnDictionary()
     const primaryKey = reverseDictionary[this.primaryKey]
 
     if (Is.Object(key)) {
-      const columnValues: any = {}
-
       Object.keys(key).forEach(k => {
-        columnValues[reverseDictionary[k]] = key[k]
+        updateObject[reverseDictionary[k]] = key[k]
       })
-
-      const updatedAtColumns = this.getUpdatedAtColumns()
-
-      updatedAtColumns.forEach(column => {
-        columnValues[column.columnName] = new Date()
-      })
-
-      const [id] = await this.DB.update(columnValues, primaryKey)
-
-      return this.where(primaryKey, id).find()
+    } else if (Is.String(key)) {
+      updateObject[reverseDictionary[key]] = value
     }
 
-    if (Is.String(key)) {
-      const columnValues: any = {}
+    this.columns.forEach(c => {
+      // Set updatedAt only if it does not exist in updateObject
+      if (c.isUpdatedAt && !updateObject[c.columnName]) {
+        updateObject[c.columnName] = new Date()
 
-      columnValues[reverseDictionary[key]] = value
+        return
+      }
+    })
 
-      const updatedAtColumns = this.getUpdatedAtColumns()
+    const [id] = await this.DB.update(updateObject, primaryKey)
 
-      updatedAtColumns.forEach(column => {
-        columnValues[column.columnName] = new Date()
-      })
-
-      const [id] = await this.DB.update(columnValues, primaryKey)
-
-      return this.where(primaryKey, id).find()
-    }
+    return this.where(primaryKey, id).find()
   }
 
   /**
@@ -281,16 +284,14 @@ export abstract class Model {
   static async delete<Class extends typeof Model>(
     this: Class,
   ): Promise<InstanceType<Class>> {
-    const deletedAtColumns = this.getDeletedAtColumns()
+    const deletedAtColumn = this.columns.find(c => c.isDeletedAt)
 
-    if (deletedAtColumns.length) {
-      const values = {}
+    if (deletedAtColumn) {
+      const updateObject = {}
 
-      deletedAtColumns.forEach(column => {
-        values[column.columnName] = new Date()
-      })
+      updateObject[deletedAtColumn.columnName] = new Date()
 
-      return this.update(values)
+      return this.update(updateObject)
     }
 
     await this.DB.delete()

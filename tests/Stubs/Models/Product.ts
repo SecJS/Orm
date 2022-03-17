@@ -21,7 +21,7 @@ export class Product extends Model {
   @Column()
   public name: string
 
-  @Column()
+  @Column({ defaultValue: 5 })
   public quantity: number
 
   @Column({ isCreatedAt: true })

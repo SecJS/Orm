@@ -21,6 +21,7 @@ export function Column(options?: ColumnOptions): PropertyDecorator {
       {
         isPrimary: false,
         columnName: propertyKey,
+        defaultValue: null,
         propertyName: String(propertyKey),
         isCreatedAt: false,
         isUpdatedAt: false,

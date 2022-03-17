@@ -35,7 +35,6 @@ describe('\n Model Class', () => {
 
     const product = await Product.create({
       name: 'Macbook Pro 2020',
-      quantity: 10,
       userModelId: idPrimary,
     })
 
@@ -44,7 +43,7 @@ describe('\n Model Class', () => {
     expect(productJson.user).toBeFalsy()
     expect(productJson.productDetails).toBeFalsy()
     expect(productJson.id).toBe(4)
-    expect(productJson.quantity).toBe(10)
+    expect(productJson.quantity).toBe(5)
     expect(productJson.name).toBe('Macbook Pro 2020')
   })
 

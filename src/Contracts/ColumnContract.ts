@@ -10,6 +10,7 @@
 export interface ColumnContract {
   isPrimary?: boolean
   columnName?: string
+  defaultValue?: any
   propertyName?: string
   isCreatedAt?: boolean
   isUpdatedAt?: boolean
