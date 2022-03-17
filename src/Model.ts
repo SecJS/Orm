@@ -10,13 +10,13 @@
 import { ModelFactory } from './Utils/ModelFactory'
 import { ModelPropsKeys } from './Types/ModelPropsKeys'
 import { ModelPropsJson } from './Types/ModelPropsJson'
-import { PaginatedResponse, String } from '@secjs/utils'
-import { InternalServerException } from '@secjs/exceptions'
 import { ColumnContract } from './Contracts/ColumnContract'
 import { ModelPropsRecord } from './Types/ModelPropsRecord'
+import { Is, PaginatedResponse, String } from '@secjs/utils'
 import { Database, DatabaseContract } from '@secjs/database'
 import { ModelRelationsKeys } from './Types/ModelRelationsKeys'
 import { RelationContractTypes } from './Types/RelationContractTypes'
+import { NotFoundRelationException } from './Exceptions/NotFoundRelationException'
 
 export abstract class Model {
   /**
@@ -195,10 +195,17 @@ export abstract class Model {
     this: Class,
     values: ModelPropsRecord<InstanceType<Class>>,
   ): Promise<InstanceType<Class>> {
-    // TODO Transpile values using columnDictionary
-    const [id] = await this.DB.insert(values)
+    const columnValues: any = {}
+    const reverseDictionary = this.reverseColumnDictionary()
+    const primaryKey = reverseDictionary[this.primaryKey]
 
-    return this.where('id', id).find()
+    Object.keys(values).forEach(key => {
+      columnValues[reverseDictionary[key]] = values[key]
+    })
+
+    const [id] = await this.DB.insert(columnValues, primaryKey)
+
+    return this.where(primaryKey, id).find()
   }
 
   /**
@@ -209,12 +216,29 @@ export abstract class Model {
     key:
       | ModelPropsKeys<InstanceType<Class>>
       | ModelPropsRecord<InstanceType<Class>>,
-    value?: ModelPropsRecord<InstanceType<Class>>,
+    value?: any,
   ): Promise<InstanceType<Class>> {
-    // TODO Transpile values using columnDictionary
-    const [id] = await this.DB.update(key, value)
+    const columnValues: any = {}
+    const reverseDictionary = this.reverseColumnDictionary()
+    const primaryKey = reverseDictionary[this.primaryKey]
 
-    return this.where('id', id).find()
+    if (Is.Object(key)) {
+      Object.keys(key).forEach(k => {
+        columnValues[reverseDictionary[k]] = key[k]
+      })
+
+      const [id] = await this.DB.update(key, primaryKey)
+
+      return this.where(primaryKey, id).find()
+    }
+
+    if (Is.String(key)) {
+      key = reverseDictionary[key]
+
+      const [id] = await this.DB.update(key, value, primaryKey)
+
+      return this.where(primaryKey, id).find()
+    }
   }
 
   /**
@@ -236,10 +260,29 @@ export abstract class Model {
       | ModelPropsRecord<InstanceType<Class>>,
     value?: any,
   ): Class {
-    // @ts-ignore
-    this.DB.buildWhere(statement, value)
+    const reverseDictionary = this.reverseColumnDictionary()
 
-    return this
+    if (Is.String(statement)) {
+      statement = reverseDictionary[statement]
+
+      // @ts-ignore
+      this.DB.buildWhere(statement, value)
+
+      return this
+    }
+
+    if (Is.Object(statement)) {
+      let newStatement: any = {}
+
+      Object.keys(statement).forEach(key => {
+        newStatement[reverseDictionary[key]] = statement[key]
+      })
+
+      // @ts-ignore
+      this.DB.buildWhere(statement)
+
+      return this
+    }
   }
 
   /**
@@ -255,9 +298,7 @@ export abstract class Model {
     )
 
     if (!relation) {
-      throw new InternalServerException(
-        `Relation ${relationName} not found in model ${this.constructor.name}`,
-      )
+      throw new NotFoundRelationException(relationName, this.constructor.name)
     }
 
     relation.isIncluded = true
@@ -316,14 +357,32 @@ export abstract class Model {
     return this
   }
 
+  /**
+   * Return only the included relations from relations array and set the included to false again
+   */
   static getIncludedRelations() {
     if (!this.relations || !this.relations.length) return []
 
     return this.relations.reduce((included, relation) => {
-      if (relation.isIncluded) included.push(relation)
+      if (relation.isIncluded) {
+        included.push({ ...relation, isIncluded: true })
+
+        const index = this.relations.indexOf(relation)
+        this.relations[index].isIncluded = false
+      }
 
       return included
     }, [])
+  }
+
+  private static reverseColumnDictionary() {
+    const reserveDictionary: any = {}
+
+    Object.keys(this.columnDictionary).forEach(
+      key => (reserveDictionary[this.columnDictionary[key]] = key),
+    )
+
+    return reserveDictionary
   }
 
   /**
@@ -341,23 +400,22 @@ export abstract class Model {
   toJSON(): ModelPropsJson<this> {
     const json: any = {}
 
-    this.class.columns.forEach(
-      column => (json[column.propertyName] = this[column.propertyName]),
-    )
+    this.class.columns.forEach(column => {
+      json[column.propertyName] = this[column.propertyName]
+    })
 
-    this.class.getIncludedRelations().forEach(relation => {
+    this.class.relations.forEach(relation => {
+      if (!this[relation.propertyName]) return
+
       if (['belongsTo', 'hasOne'].includes(relation.relationType)) {
-        if (!this[relation.propertyName]) return
-
         json[relation.propertyName] = this[relation.propertyName].toJSON()
 
         return
       }
 
-      json[relation.propertyName] = []
-
       this[relation.propertyName].forEach(relationData => {
         if (!relationData) return
+        if (!json[relation.propertyName]) json[relation.propertyName] = []
 
         json[relation.propertyName].push(relationData.toJSON())
       })

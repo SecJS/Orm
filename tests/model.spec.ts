@@ -10,8 +10,8 @@
 import 'reflect-metadata'
 import { Knex } from 'knex'
 import { Product } from './stubs/Models/Product'
-import { Database, DatabaseContract } from '@secjs/database'
 import { UserModel } from './stubs/Models/UserModel'
+import { Database, DatabaseContract } from '@secjs/database'
 
 describe('\n Model Class', () => {
   let DB: DatabaseContract
@@ -149,25 +149,43 @@ describe('\n Model Class', () => {
     expect(userJson.$extras[0].roles_id).toBe(1)
   })
 
-  // it('should be able to create a new product with one product detail', async () => {
-  //   const { idPrimary } = await UserModel.find()
-  //
-  //   const product = await Product.create({
-  //     name: 'Macbook Pro 2020',
-  //     quantity: 10,
-  //     userModelId: idPrimary,
-  //   })
-  //
-  //   const productJson = product.toJSON()
-  //
-  //   expect(productJson.id).toBe(1)
-  //   expect(productJson.quantity).toBe(10)
-  //   expect(productJson.name).toBe('iPhone 10')
-  //   expect(productJson.user.idPrimary).toBe(1)
-  //   expect(productJson.user.name).toBe('Victor')
-  //   expect(productJson.user.email).toBe('txsoura@gmail.com')
-  //   expect(productJson.productDetails[0].productModelId).toBe(1)
-  // })
+  it('should be able to create a new product', async () => {
+    const { idPrimary } = await UserModel.find()
+
+    const product = await Product.create({
+      name: 'Macbook Pro 2020',
+      quantity: 10,
+      userModelId: idPrimary,
+    })
+
+    const productJson = product.toJSON()
+
+    expect(productJson.user).toBeFalsy()
+    expect(productJson.productDetails).toBeFalsy()
+    expect(productJson.id).toBe(4)
+    expect(productJson.quantity).toBe(10)
+    expect(productJson.name).toBe('Macbook Pro 2020')
+  })
+
+  it('should be able to update a product', async () => {
+    const { idPrimary } = await UserModel.find()
+
+    const { id } = await Product.create({
+      name: 'Macbook Pro 2020',
+      quantity: 10,
+      userModelId: idPrimary,
+    })
+
+    const product = await Product.where('id', id).update({ name: 'Macbook Pro 2021' })
+
+    const productJson = product.toJSON()
+
+    expect(productJson.user).toBeFalsy()
+    expect(productJson.productDetails).toBeFalsy()
+    expect(productJson.id).toBe(4)
+    expect(productJson.quantity).toBe(10)
+    expect(productJson.name).toBe('Macbook Pro 2021')
+  })
 
   afterEach(async () => {
     await DB.dropTable('product_details')
