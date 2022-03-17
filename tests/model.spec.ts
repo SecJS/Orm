@@ -9,8 +9,8 @@
 
 import 'reflect-metadata'
 import { Knex } from 'knex'
-import { Product } from './stubs/Models/Product'
-import { UserModel } from './stubs/Models/UserModel'
+import { Product } from './Stubs/Models/Product'
+import { UserModel } from './Stubs/Models/UserModel'
 import { Database, DatabaseContract } from '@secjs/database'
 
 describe('\n Model Class', () => {
@@ -103,6 +103,44 @@ describe('\n Model Class', () => {
     await Promise.all(promises)
   })
 
+  it('should be able to create a new product', async () => {
+    const { idPrimary } = await UserModel.find()
+
+    const product = await Product.create({
+      name: 'Macbook Pro 2020',
+      quantity: 10,
+      userModelId: idPrimary,
+    })
+
+    const productJson = product.toJSON()
+
+    expect(productJson.user).toBeFalsy()
+    expect(productJson.productDetails).toBeFalsy()
+    expect(productJson.id).toBe(4)
+    expect(productJson.quantity).toBe(10)
+    expect(productJson.name).toBe('Macbook Pro 2020')
+  })
+
+  it('should be able to update a product', async () => {
+    const { idPrimary } = await UserModel.find()
+
+    const { id } = await Product.create({
+      name: 'Macbook Pro 2020',
+      quantity: 10,
+      userModelId: idPrimary,
+    })
+
+    const product = await Product.where('id', id).update({ name: 'Macbook Pro 2021' })
+
+    const productJson = product.toJSON()
+
+    expect(productJson.user).toBeFalsy()
+    expect(productJson.productDetails).toBeFalsy()
+    expect(productJson.id).toBe(4)
+    expect(productJson.quantity).toBe(10)
+    expect(productJson.name).toBe('Macbook Pro 2021')
+  })
+
   it('should return all data from Product model with user and productDetails included', async () => {
     const models = await Product.includes('user').includes('productDetails').findMany()
 
@@ -147,44 +185,6 @@ describe('\n Model Class', () => {
     expect(userJson.$extras[0].id).toBe(1)
     expect(userJson.$extras[0].users_id).toBe(userJson.idPrimary)
     expect(userJson.$extras[0].roles_id).toBe(1)
-  })
-
-  it('should be able to create a new product', async () => {
-    const { idPrimary } = await UserModel.find()
-
-    const product = await Product.create({
-      name: 'Macbook Pro 2020',
-      quantity: 10,
-      userModelId: idPrimary,
-    })
-
-    const productJson = product.toJSON()
-
-    expect(productJson.user).toBeFalsy()
-    expect(productJson.productDetails).toBeFalsy()
-    expect(productJson.id).toBe(4)
-    expect(productJson.quantity).toBe(10)
-    expect(productJson.name).toBe('Macbook Pro 2020')
-  })
-
-  it('should be able to update a product', async () => {
-    const { idPrimary } = await UserModel.find()
-
-    const { id } = await Product.create({
-      name: 'Macbook Pro 2020',
-      quantity: 10,
-      userModelId: idPrimary,
-    })
-
-    const product = await Product.where('id', id).update({ name: 'Macbook Pro 2021' })
-
-    const productJson = product.toJSON()
-
-    expect(productJson.user).toBeFalsy()
-    expect(productJson.productDetails).toBeFalsy()
-    expect(productJson.id).toBe(4)
-    expect(productJson.quantity).toBe(10)
-    expect(productJson.name).toBe('Macbook Pro 2021')
   })
 
   afterEach(async () => {

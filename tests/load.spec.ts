@@ -7,8 +7,8 @@
  * file that was distributed with this source code.
  */
 
-import { Product } from './stubs/Models/Product'
-import { UserModel } from './stubs/Models/UserModel'
+import { Product } from './Stubs/Models/Product'
+import { UserModel } from './Stubs/Models/UserModel'
 
 describe('\n Load Model Class', () => {
   it('should be able to boot all the static properties for each concrete Model', async () => {
