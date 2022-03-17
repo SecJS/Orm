@@ -7,9 +7,10 @@
  * file that was distributed with this source code.
  */
 
-import { OmitModelMethods } from './OmitModelMethods'
-
-/**
- * Object from generic Type properties
- */
-export type ModelPropsRecord<Type> = Partial<OmitModelMethods<Type>>
+export interface ManyToManyOptions {
+  pivotTableName?: string
+  localPrimaryKey?: string
+  relationPrimaryKey?: string
+  pivotLocalForeignKey?: string
+  pivotRelationForeignKey?: string
+}

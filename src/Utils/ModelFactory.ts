@@ -12,6 +12,7 @@ import { Is } from '@secjs/utils'
 import { InternalServerException } from '@secjs/exceptions'
 import { Database, DatabaseContract } from '@secjs/database'
 import { RelationContract } from '../Contracts/RelationContract'
+import { ManyToManyContract } from '../Contracts/ManyToManyContract'
 
 export class ModelFactory {
   private DB: DatabaseContract
@@ -20,11 +21,16 @@ export class ModelFactory {
     this.DB = new Database().connection(connection)
   }
 
-  private static getIncludedRelations(relations: RelationContract[]) {
+  private static getIncludedRelations(
+    relations: (RelationContract | ManyToManyContract)[],
+  ) {
     if (!relations || !relations.length) return []
 
     return relations.reduce(
-      (includedRelations: RelationContract[], previous: RelationContract) => {
+      (
+        includedRelations: (RelationContract | ManyToManyContract)[],
+        previous: RelationContract | ManyToManyContract,
+      ) => {
         if (previous.isIncluded) includedRelations.push(previous)
 
         return includedRelations
@@ -102,18 +108,21 @@ export class ModelFactory {
     return modelData
   }
 
-  private async verifyModelType(data: any | any[], relation: RelationContract) {
+  private async verifyModelType(
+    data: any | any[],
+    relation: RelationContract | ManyToManyContract,
+  ) {
     if (Is.Array(data)) {
       for (const d of data) {
         const index = data.indexOf(d)
 
-        data[index] = await this[relation.relationType](d, relation)
+        data[index] = await this[relation.relationType](d, relation as any)
       }
 
       return data
     }
 
-    return this[relation.relationType](data, relation)
+    return this[relation.relationType](data, relation as any)
   }
 
   private async hasOne(data: any, relation: RelationContract): Promise<any> {
@@ -211,11 +220,50 @@ export class ModelFactory {
     return this.hasOne(data, relation)
   }
 
-  // TODO Implement
   private async manyToMany(
     data: any,
-    relation: RelationContract,
+    relation: ManyToManyContract,
   ): Promise<any> {
+    const Model = relation.model()
+    const pivotTableName =
+      relation.pivotTableName || `${relation.localTableName}_${Model.table}`
+    const relationPrimaryKey = relation.relationPrimaryKey || Model.primaryKey
+    const pivotRelationForeignKey =
+      relation.relationPrimaryKey || `${Model.table}_id`
+    const propertyName = relation.propertyName
+    const columnDictionary = Model.columnDictionary
+
+    data[propertyName] = []
+
+    const pivotTableData = await this.DB.buildTable(pivotTableName)
+      .buildWhere(relation.pivotLocalForeignKey, data[relation.localPrimaryKey])
+      .findMany()
+
+    const relationIds = pivotTableData.map(
+      data => data[pivotRelationForeignKey],
+    )
+
+    const modelsData = await this.DB.buildTable(Model.table)
+      .buildWhereIn(relationPrimaryKey, relationIds)
+      .findMany()
+
+    modelsData.forEach(modelData => {
+      // @ts-ignore
+      const modelRelation = new Model()
+
+      Object.keys(modelData).forEach(key => {
+        if (!columnDictionary[key]) {
+          throw new InternalServerException(
+            `The field ${key} has not been mapped in some of your @Column annotation in ${Model.name} Model`,
+          )
+        }
+
+        modelRelation[columnDictionary[key]] = modelData[key]
+      })
+
+      data[propertyName].push(modelRelation)
+    })
+
     return data
   }
 }

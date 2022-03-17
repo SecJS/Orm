@@ -17,6 +17,7 @@ import { ModelPropsRecord } from './Types/ModelPropsRecord'
 import { Database, DatabaseContract } from '@secjs/database'
 import { ModelRelationsKeys } from './Types/ModelRelationsKeys'
 import { RelationContract } from './Contracts/RelationContract'
+import { ManyToManyContract } from './Contracts/ManyToManyContract'
 
 export abstract class Model {
   /**
@@ -52,7 +53,7 @@ export abstract class Model {
   /**
    * All the model relations mapped
    */
-  static relations: RelationContract[]
+  static relations: (RelationContract | ManyToManyContract)[]
 
   /**
    * DB to handle all data operations
@@ -120,10 +121,25 @@ export abstract class Model {
   /**
    * Add a new relation inside subclass constructor
    */
-  static addRelation(relation: RelationContract) {
+  static addRelation(relation: RelationContract | ManyToManyContract) {
     switch (relation.relationType) {
       case 'belongsTo':
-        relation.foreignKey = this.primaryKey
+        if (!relation.foreignKey) {
+          relation.foreignKey = this.primaryKey
+        }
+
+        break
+      case 'manyToMany':
+        if (!relation.localPrimaryKey) {
+          relation.localPrimaryKey = this.primaryKey
+        }
+
+        if (!relation.pivotLocalForeignKey) {
+          relation.pivotLocalForeignKey = `${this.table}_id`
+        }
+
+        relation.localTableName = this.table
+
         break
       default:
         relation.primaryKey = this.primaryKey
@@ -197,6 +213,7 @@ export abstract class Model {
     this: Class,
     values: ModelPropsRecord<InstanceType<Class>>,
   ): Promise<InstanceType<Class>> {
+    // TODO Transpile values using columnDictionary
     const [id] = await this.DB.insert(values)
 
     return this.where('id', id).find()
@@ -212,6 +229,7 @@ export abstract class Model {
       | ModelPropsRecord<InstanceType<Class>>,
     value?: ModelPropsRecord<InstanceType<Class>>,
   ): Promise<InstanceType<Class>> {
+    // TODO Transpile values using columnDictionary
     const [id] = await this.DB.update(key, value)
 
     return this.where('id', id).find()

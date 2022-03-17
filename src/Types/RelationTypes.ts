@@ -7,9 +7,4 @@
  * file that was distributed with this source code.
  */
 
-import { OmitModelMethods } from './OmitModelMethods'
-
-/**
- * Object from generic Type properties
- */
-export type ModelPropsRecord<Type> = Partial<OmitModelMethods<Type>>
+export type RelationTypes = 'belongsTo' | 'hasMany' | 'hasOne' | 'manyToMany'

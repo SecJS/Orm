@@ -22,7 +22,7 @@ export class Product extends Model {
   public name: string
 
   @Column()
-  public quantity: string
+  public quantity: number
 
   @Column()
   public createdAt: Date

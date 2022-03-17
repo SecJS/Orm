@@ -11,6 +11,7 @@ import 'reflect-metadata'
 import { Knex } from 'knex'
 import { Product } from './stubs/Models/Product'
 import { Database, DatabaseContract } from '@secjs/database'
+import { UserModel } from './stubs/Models/UserModel'
 
 describe('\n Model Class', () => {
   let DB: DatabaseContract
@@ -29,6 +30,19 @@ describe('\n Model Class', () => {
       tableBuilder.timestamps(true, true, true)
     })
 
+    await DB.createTable('roles', (tableBuilder: Knex.TableBuilder) => {
+      tableBuilder.increments('id').primary()
+      tableBuilder.string('name').nullable()
+      tableBuilder.string('description').nullable()
+      tableBuilder.timestamps(true, true, true)
+    })
+
+    await DB.createTable('users_roles', (tableBuilder: Knex.TableBuilder) => {
+      tableBuilder.increments('id').primary()
+      tableBuilder.integer('users_id').unsigned().references('id').inTable('users')
+      tableBuilder.integer('roles_id').unsigned().references('id').inTable('roles')
+    })
+
     await DB.createTable('products', (tableBuilder: Knex.TableBuilder) => {
       tableBuilder.increments('id').primary()
       tableBuilder.string('name').nullable()
@@ -37,32 +51,47 @@ describe('\n Model Class', () => {
       tableBuilder.integer('userId').references('id').inTable('users')
     })
 
-    const userId = await DB.buildTable('users').insert({ name: 'Victor', email: 'txsoura@gmail.com' })
-
-    const ids = await DB.buildTable('products').insert([
-      {
-        name: 'iPhone 10',
-        quantity: 10,
-        userId: userId[0],
-      },
-      {
-        name: 'iPhone 10',
-        quantity: 10,
-        userId: userId[0],
-      },
-      {
-        name: 'iPhone 10',
-        quantity: 10,
-        userId: userId[0],
-      },
-    ])
-
     await DB.createTable('product_details', (tableBuilder: Knex.TableBuilder) => {
       tableBuilder.increments('id').primary()
       tableBuilder.string('detail').nullable()
       tableBuilder.timestamps(true, true, true)
       tableBuilder.integer('productId').references('id').inTable('products')
     })
+
+    const [userId] = await DB.buildTable('users').insert({ name: 'Victor', email: 'txsoura@gmail.com' })
+    const [roleId1, roleId2] = await DB.buildTable('roles').insert([
+      {
+        name: 'Admin',
+        description: 'Server Admin',
+      },
+      { name: 'Owner', description: 'Server Owner' },
+    ])
+
+    await DB.buildTable('users_roles').insert([
+      { users_id: userId, roles_id: roleId1 },
+      {
+        users_id: userId,
+        roles_id: roleId2,
+      },
+    ])
+
+    const ids = await DB.buildTable('products').insert([
+      {
+        name: 'iPhone 10',
+        quantity: 10,
+        userId: userId,
+      },
+      {
+        name: 'iPhone 10',
+        quantity: 10,
+        userId: userId,
+      },
+      {
+        name: 'iPhone 10',
+        quantity: 10,
+        userId: userId,
+      },
+    ])
 
     const promises = ids.map(id =>
       DB.buildTable('product_details').insert([
@@ -104,9 +133,37 @@ describe('\n Model Class', () => {
     expect(productJson.productDetails[0].productModelId).toBe(1)
   })
 
+  it('should return all data from User model with roles included', async () => {
+    const models = await UserModel.includes('roles').findMany()
+
+    console.log(models[0].toJSON())
+  })
+
+  // it('should be able to create a new product with one product detail', async () => {
+  //   const { idPrimary } = await UserModel.find()
+  //
+  //   const product = await Product.create({
+  //     name: 'Macbook Pro 2020',
+  //     quantity: 10,
+  //     userModelId: idPrimary,
+  //   })
+  //
+  //   const productJson = product.toJSON()
+  //
+  //   expect(productJson.id).toBe(1)
+  //   expect(productJson.quantity).toBe(10)
+  //   expect(productJson.name).toBe('iPhone 10')
+  //   expect(productJson.user.idPrimary).toBe(1)
+  //   expect(productJson.user.name).toBe('Victor')
+  //   expect(productJson.user.email).toBe('txsoura@gmail.com')
+  //   expect(productJson.productDetails[0].productModelId).toBe(1)
+  // })
+
   afterEach(async () => {
     await DB.dropTable('product_details')
+    await DB.dropTable('users_roles')
     await DB.dropTable('products')
+    await DB.dropTable('roles')
     await DB.dropTable('users')
   })
 

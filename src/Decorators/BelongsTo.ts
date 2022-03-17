@@ -30,7 +30,7 @@ export function BelongsTo(
       {
         model,
         isIncluded: false,
-        relationType: 'belongsTo',
+        relationType: 'belongsTo' as any,
         propertyName: String(propertyKey),
         primaryKey: `${String(propertyKey)}Id`,
       },

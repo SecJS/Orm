@@ -30,7 +30,7 @@ export function HasMany(
       {
         model,
         isIncluded: false,
-        relationType: 'hasMany',
+        relationType: 'hasMany' as any,
         propertyName: String(propertyKey),
         foreignKey: `${MainModel.name.toLowerCase()}Id`,
       },

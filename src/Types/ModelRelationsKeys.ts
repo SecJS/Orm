@@ -7,8 +7,8 @@
  * file that was distributed with this source code.
  */
 
-import { ModelPropsKeys } from '../Model'
 import { OmitKeysOfType } from './OmitKeysOfType'
+import { ModelPropsKeys } from './ModelPropsKeys'
 
 /**
  * Relation keys from generic Type properties

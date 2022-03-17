@@ -9,11 +9,15 @@
 
 import { Model } from '../Model'
 
-export interface RelationContract {
+export interface ManyToManyContract {
   model?: () => typeof Model
-  primaryKey?: string
-  foreignKey?: string
   isIncluded?: boolean
   propertyName?: string
-  relationType?: 'hasOne' | 'hasMany' | 'belongsTo'
+  relationType?: 'manyToMany'
+  localTableName?: string
+  pivotTableName?: string
+  localPrimaryKey?: string
+  relationPrimaryKey?: string
+  pivotLocalForeignKey?: string
+  pivotRelationForeignKey?: string
 }

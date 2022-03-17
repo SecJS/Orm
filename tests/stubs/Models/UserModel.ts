@@ -7,10 +7,12 @@
  * file that was distributed with this source code.
  */
 
+import { Role } from './Role'
 import { Product } from './Product'
 import { Model } from '../../../src/Model'
 import { Column } from '../../../src/Decorators/Column'
 import { HasMany } from '../../../src/Decorators/HasMany'
+import { ManyToMany } from '../../../src/Decorators/ManyToMany'
 
 export class UserModel extends Model {
   static table = 'users'
@@ -34,4 +36,7 @@ export class UserModel extends Model {
 
   @HasMany(() => Product)
   public products: Product[]
+
+  @ManyToMany(() => Role)
+  public roles: Role[]
 }
