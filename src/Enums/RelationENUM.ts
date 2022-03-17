@@ -7,7 +7,9 @@
  * file that was distributed with this source code.
  */
 
-export interface RelationOptions {
-  primaryKey?: string
-  foreignKey?: string
+export enum RelationENUM {
+  HAS_ONE = 'hasOne',
+  HAS_MANY = 'hasMany',
+  BELONGS_TO = 'belongsTo',
+  MANY_TO_MANY = 'manyToMany',
 }

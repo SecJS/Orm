@@ -9,34 +9,25 @@
 
 import { Model } from '../Model'
 import { ManyToManyOptions } from '../Contracts/ManyToManyOptions'
-import { ManyToManyContract } from '../Contracts/ManyToManyContract'
+import { RelationContractGenerator } from '../Utils/RelationContractGenerator'
 
 /**
  * Define ManyToMany relationship
  */
 export function ManyToMany(
-  model: () => typeof Model,
+  relationModel: () => typeof Model,
   options?: ManyToManyOptions,
 ): PropertyDecorator {
   return (target: any, propertyKey: string | symbol) => {
-    const MainModel = target.constructor
+    const Model = target.constructor
 
-    /**
-     * Default local primary key and foreign key will be defined inside
-     * addRelation method if it does not exist in options.
-     */
-    const relation: ManyToManyContract = Object.assign(
-      {},
-      {
-        model,
-        isIncluded: false,
-        relationType: 'manyToMany' as any,
-        propertyName: String(propertyKey),
-      },
-      options,
-    )
+    Model.boot()
 
-    MainModel.boot()
-    MainModel.addRelation(relation)
+    const relation = new RelationContractGenerator()
+      .setModel(Model)
+      .setRelationModel(relationModel)
+      .manyToMany(String(propertyKey), options)
+
+    Model.addRelation(relation)
   }
 }

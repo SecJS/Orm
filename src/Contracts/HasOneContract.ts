@@ -8,13 +8,13 @@
  */
 
 import { Model } from '../Model'
+import { RelationENUM } from '../Enums/RelationENUM'
 
-// TODO Create an RelationContract and RelationOptions for each relation type
-export interface RelationContract {
+export interface HasOneContract {
   model?: () => typeof Model
   primaryKey?: string
   foreignKey?: string
   isIncluded?: boolean
   propertyName?: string
-  relationType?: 'hasOne' | 'hasMany' | 'belongsTo'
+  relationType?: RelationENUM.HAS_ONE
 }

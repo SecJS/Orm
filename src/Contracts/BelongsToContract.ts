@@ -10,15 +10,11 @@
 import { Model } from '../Model'
 import { RelationENUM } from '../Enums/RelationENUM'
 
-export interface ManyToManyContract {
+export interface BelongsToContract {
   model?: () => typeof Model
+  primaryKey?: string
+  foreignKey?: string
   isIncluded?: boolean
   propertyName?: string
-  relationType?: RelationENUM.MANY_TO_MANY
-  localTableName?: string
-  pivotTableName?: string
-  localPrimaryKey?: string
-  relationPrimaryKey?: string
-  pivotLocalForeignKey?: string
-  pivotRelationForeignKey?: string
+  relationType?: RelationENUM.BELONGS_TO
 }

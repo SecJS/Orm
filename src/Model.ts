@@ -16,8 +16,7 @@ import { ColumnContract } from './Contracts/ColumnContract'
 import { ModelPropsRecord } from './Types/ModelPropsRecord'
 import { Database, DatabaseContract } from '@secjs/database'
 import { ModelRelationsKeys } from './Types/ModelRelationsKeys'
-import { RelationContract } from './Contracts/RelationContract'
-import { ManyToManyContract } from './Contracts/ManyToManyContract'
+import { RelationContractTypes } from './Types/RelationContractTypes'
 
 export abstract class Model {
   /**
@@ -53,7 +52,13 @@ export abstract class Model {
   /**
    * All the model relations mapped
    */
-  static relations: (RelationContract | ManyToManyContract)[]
+  static relations: RelationContractTypes[]
+
+  /**
+   * Extras properties that could be added to Model, usually the data
+   * inside pivotTable from ManyToMany Relations
+   */
+  $extras: any | any[]
 
   /**
    * DB to handle all data operations
@@ -121,30 +126,7 @@ export abstract class Model {
   /**
    * Add a new relation inside subclass constructor
    */
-  static addRelation(relation: RelationContract | ManyToManyContract) {
-    switch (relation.relationType) {
-      case 'belongsTo':
-        if (!relation.foreignKey) {
-          relation.foreignKey = this.primaryKey
-        }
-
-        break
-      case 'manyToMany':
-        if (!relation.localPrimaryKey) {
-          relation.localPrimaryKey = this.primaryKey
-        }
-
-        if (!relation.pivotLocalForeignKey) {
-          relation.pivotLocalForeignKey = `${this.table}_id`
-        }
-
-        relation.localTableName = this.table
-
-        break
-      default:
-        relation.primaryKey = this.primaryKey
-    }
-
+  static addRelation(relation: RelationContractTypes) {
     this.relations.push(relation)
   }
 
@@ -334,6 +316,16 @@ export abstract class Model {
     return this
   }
 
+  static getIncludedRelations() {
+    if (!this.relations || !this.relations.length) return []
+
+    return this.relations.reduce((included, relation) => {
+      if (relation.isIncluded) included.push(relation)
+
+      return included
+    }, [])
+  }
+
   /**
    * Define the static property only if it is not already defined
    */
@@ -347,6 +339,32 @@ export abstract class Model {
    * Return a Json object from the actual subclass instance
    */
   toJSON(): ModelPropsJson<this> {
-    return this.class.Factory.fabricateJson(this)
+    const json: any = {}
+
+    this.class.columns.forEach(
+      column => (json[column.propertyName] = this[column.propertyName]),
+    )
+
+    this.class.getIncludedRelations().forEach(relation => {
+      if (['belongsTo', 'hasOne'].includes(relation.relationType)) {
+        if (!this[relation.propertyName]) return
+
+        json[relation.propertyName] = this[relation.propertyName].toJSON()
+
+        return
+      }
+
+      json[relation.propertyName] = []
+
+      this[relation.propertyName].forEach(relationData => {
+        if (!relationData) return
+
+        json[relation.propertyName].push(relationData.toJSON())
+      })
+    })
+
+    if (this.$extras) json.$extras = this.$extras
+
+    return json
   }
 }

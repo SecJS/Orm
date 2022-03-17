@@ -8,36 +8,26 @@
  */
 
 import { Model } from '../Model'
-import { RelationOptions } from '../Contracts/RelationOptions'
-import { RelationContract } from '../Contracts/RelationContract'
+import { HasManyOptions } from '../Contracts/HasManyOptions'
+import { RelationContractGenerator } from '../Utils/RelationContractGenerator'
 
 /**
  * Define HasMany relationship
  */
 export function HasMany(
-  model: () => typeof Model,
-  options?: RelationOptions,
+  relationModel: () => typeof Model,
+  options?: HasManyOptions,
 ): PropertyDecorator {
   return (target: any, propertyKey: string | symbol) => {
-    const MainModel = target.constructor
+    const Model = target.constructor
 
-    /**
-     * Default primary key will be defined inside addRelation method
-     * if it does not exist in options.
-     */
-    const relation: RelationContract = Object.assign(
-      {},
-      {
-        model,
-        isIncluded: false,
-        relationType: 'hasMany' as any,
-        propertyName: String(propertyKey),
-        foreignKey: `${MainModel.name.toLowerCase()}Id`,
-      },
-      options,
-    )
+    Model.boot()
 
-    MainModel.boot()
-    MainModel.addRelation(relation)
+    const relation = new RelationContractGenerator()
+      .setModel(Model)
+      .setRelationModel(relationModel)
+      .hasMany(String(propertyKey), options)
+
+    Model.addRelation(relation)
   }
 }

@@ -8,36 +8,26 @@
  */
 
 import { Model } from '../Model'
-import { RelationOptions } from '../Contracts/RelationOptions'
-import { RelationContract } from '../Contracts/RelationContract'
+import { HasOneOptions } from '../Contracts/HasOneOptions'
+import { RelationContractGenerator } from '../Utils/RelationContractGenerator'
 
 /**
  * Define HasOne relationship
  */
 export function HasOne(
-  model: () => typeof Model,
-  options?: RelationOptions,
+  relationModel: () => typeof Model,
+  options?: HasOneOptions,
 ): PropertyDecorator {
   return (target: any, propertyKey: string | symbol) => {
-    const MainModel = target.constructor
+    const Model = target.constructor
 
-    /**
-     * Default primary key will be defined inside addRelation method
-     * if it does not exist in options.
-     */
-    const relation: RelationContract = Object.assign(
-      {},
-      {
-        model,
-        isIncluded: false,
-        relationType: 'hasOne' as any,
-        propertyName: String(propertyKey),
-        foreignKey: `${MainModel.name.toLowerCase()}Id`,
-      },
-      options,
-    )
+    Model.boot()
 
-    MainModel.boot()
-    MainModel.addRelation(relation)
+    const relation = new RelationContractGenerator()
+      .setModel(Model)
+      .setRelationModel(relationModel)
+      .hasOne(String(propertyKey), options)
+
+    Model.addRelation(relation)
   }
 }

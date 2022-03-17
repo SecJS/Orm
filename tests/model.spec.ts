@@ -134,9 +134,19 @@ describe('\n Model Class', () => {
   })
 
   it('should return all data from User model with roles included', async () => {
-    const models = await UserModel.includes('roles').findMany()
+    const user = await UserModel.includes('roles').find()
 
-    console.log(models[0].toJSON())
+    const userJson = user.toJSON()
+
+    expect(userJson.idPrimary).toBe(1)
+    expect(userJson.name).toBe('Victor')
+    expect(userJson.roles[0].id).toBe(1)
+    expect(userJson.roles[0].name).toBe('Admin')
+    expect(userJson.roles[1].id).toBe(2)
+    expect(userJson.roles[1].name).toBe('Owner')
+    expect(userJson.$extras[0].id).toBe(1)
+    expect(userJson.$extras[0].users_id).toBe(userJson.idPrimary)
+    expect(userJson.$extras[0].roles_id).toBe(1)
   })
 
   // it('should be able to create a new product with one product detail', async () => {

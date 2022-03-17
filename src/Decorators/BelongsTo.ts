@@ -8,36 +8,26 @@
  */
 
 import { Model } from '../Model'
-import { RelationOptions } from '../Contracts/RelationOptions'
-import { RelationContract } from '../Contracts/RelationContract'
+import { BelongsToOptions } from '../Contracts/BelongsToOptions'
+import { RelationContractGenerator } from '../Utils/RelationContractGenerator'
 
 /**
  * Define BelongsTo relationship
  */
 export function BelongsTo(
-  model: () => typeof Model,
-  options?: RelationOptions,
+  relationModel: () => typeof Model,
+  options?: BelongsToOptions,
 ): PropertyDecorator {
   return (target: any, propertyKey: string | symbol) => {
-    const MainModel = target.constructor
+    const Model = target.constructor
 
-    /**
-     * Default foreign key will be defined inside addRelation method
-     * if it does not exist in options.
-     */
-    const relation: RelationContract = Object.assign(
-      {},
-      {
-        model,
-        isIncluded: false,
-        relationType: 'belongsTo' as any,
-        propertyName: String(propertyKey),
-        primaryKey: `${String(propertyKey)}Id`,
-      },
-      options,
-    )
+    Model.boot()
 
-    MainModel.boot()
-    MainModel.addRelation(relation)
+    const relation = new RelationContractGenerator()
+      .setModel(Model)
+      .setRelationModel(relationModel)
+      .belongsTo(String(propertyKey), options)
+
+    Model.addRelation(relation)
   }
 }

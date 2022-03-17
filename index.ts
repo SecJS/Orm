@@ -19,8 +19,6 @@ export * from './src/Decorators/ManyToMany'
 // Contracts
 export * from './src/Contracts/ColumnOptions'
 export * from './src/Contracts/ColumnContract'
-export * from './src/Contracts/RelationOptions'
-export * from './src/Contracts/RelationContract'
 
 // Model
 export * from './src/Model'

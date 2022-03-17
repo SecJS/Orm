@@ -7,4 +7,7 @@
  * file that was distributed with this source code.
  */
 
-export type RelationTypes = 'belongsTo' | 'hasMany' | 'hasOne' | 'manyToMany'
+export interface HasOneOptions {
+  primaryKey?: string
+  foreignKey?: string
+}

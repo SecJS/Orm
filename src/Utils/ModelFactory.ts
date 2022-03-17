@@ -9,10 +9,13 @@
 
 import { Model } from '../Model'
 import { Is } from '@secjs/utils'
-import { InternalServerException } from '@secjs/exceptions'
 import { Database, DatabaseContract } from '@secjs/database'
-import { RelationContract } from '../Contracts/RelationContract'
+import { HasOneContract } from '../Contracts/HasOneContract'
+import { BelongsToContract } from '../Contracts/BelongsToContract'
 import { ManyToManyContract } from '../Contracts/ManyToManyContract'
+import { RelationContractTypes } from '../Types/RelationContractTypes'
+import { RelationContractGenerator } from './RelationContractGenerator'
+import { NotMappedColumnException } from '../Exceptions/NotMappedColumnException'
 
 export class ModelFactory {
   private DB: DatabaseContract
@@ -21,114 +24,68 @@ export class ModelFactory {
     this.DB = new Database().connection(connection)
   }
 
-  private static getIncludedRelations(
-    relations: (RelationContract | ManyToManyContract)[],
-  ) {
-    if (!relations || !relations.length) return []
+  async fabricate(flatData: any | any[], MainModel: typeof Model) {
+    let model = this.flatDataToInstance(flatData, MainModel)
+    const includedRelations = MainModel.getIncludedRelations()
 
-    return relations.reduce(
-      (
-        includedRelations: (RelationContract | ManyToManyContract)[],
-        previous: RelationContract | ManyToManyContract,
-      ) => {
-        if (previous.isIncluded) includedRelations.push(previous)
+    for (const includedRelation of includedRelations) {
+      model = await this.includeRelation(model, includedRelation)
+    }
 
-        return includedRelations
-      },
-      [],
-    )
+    return model
   }
 
-  fabricateJson(model: any) {
-    const json: any = {}
+  private flatDataToInstance(flatData: any | any[], MainModel: any) {
+    const populateInstance = (data, instance) => {
+      const SubClassModel = instance.class
+      const columnDictionary = SubClassModel.columnDictionary
 
-    model.class.columns.forEach(
-      column => (json[column.propertyName] = model[column.propertyName]),
-    )
-
-    ModelFactory.getIncludedRelations(model.class.relations).forEach(
-      relation => {
-        if (['belongsTo', 'hasOne'].includes(relation.relationType)) {
-          if (!model[relation.propertyName]) return
-
-          json[relation.propertyName] = model[relation.propertyName].toJSON()
-
-          return
-        }
-
-        json[relation.propertyName] = []
-
-        model[relation.propertyName].forEach(relationData => {
-          if (!relationData) return
-
-          json[relation.propertyName].push(relationData.toJSON())
-        })
-      },
-    )
-
-    return json
-  }
-
-  fabricateInstance(flatData: any | any[], model: any) {
-    const setDataInInstance = (data, instance) => {
       Object.keys(data).forEach(key => {
-        if (!instance.class.columnDictionary[key]) {
-          throw new InternalServerException(
-            `The field ${key} has not been mapped in some of your @Column annotation in ${instance.class.name} Model`,
-          )
+        if (!columnDictionary[key]) {
+          throw new NotMappedColumnException(key, SubClassModel.name)
         }
 
-        instance[instance.class.columnDictionary[key]] = data[key]
+        instance[columnDictionary[key]] = data[key]
       })
 
       return instance
     }
 
     if (Is.Array(flatData)) {
-      const modelData = []
+      const models = []
 
-      flatData.forEach(data =>
-        modelData.push(setDataInInstance(data, new model())),
-      )
+      flatData.forEach(d => models.push(populateInstance(d, new MainModel())))
 
-      return modelData
+      return models
     }
 
-    return setDataInInstance(flatData, new model())
+    return populateInstance(flatData, new MainModel())
   }
 
-  async fabricate(flatData: any | any[], model: typeof Model) {
-    let modelData = this.fabricateInstance(flatData, model)
-    const includedRelations = ModelFactory.getIncludedRelations(model.relations)
-
-    for (const includedRelation of includedRelations) {
-      modelData = await this.verifyModelType(modelData, includedRelation)
-    }
-
-    return modelData
-  }
-
-  private async verifyModelType(
-    data: any | any[],
-    relation: RelationContract | ManyToManyContract,
+  private async includeRelation(
+    model: typeof Model | typeof Model[],
+    relation: RelationContractTypes,
   ) {
-    if (Is.Array(data)) {
-      for (const d of data) {
-        const index = data.indexOf(d)
+    if (Is.Array(model)) {
+      for (const d of model) {
+        const index = model.indexOf(d)
 
-        data[index] = await this[relation.relationType](d, relation as any)
+        model[index] = await this[relation.relationType](d, relation as any)
       }
 
-      return data
+      return model
     }
 
-    return this[relation.relationType](data, relation as any)
+    return this[relation.relationType](model, relation as any)
   }
 
-  private async hasOne(data: any, relation: RelationContract): Promise<any> {
+  private async hasOne(
+    model: typeof Model,
+    relation: HasOneContract,
+  ): Promise<typeof Model> {
     const Model = relation.model()
-    const foreignKey = relation.foreignKey
     const primaryKey = relation.primaryKey
+    const foreignKey = relation.foreignKey
     const propertyName = relation.propertyName
     const columnDictionary = Model.columnDictionary
 
@@ -159,111 +116,146 @@ export class ModelFactory {
     //   return data
     // }
 
-    data[propertyName] = null
+    model[propertyName] = null
 
-    const modelData = await this.DB.buildTable(Model.table)
-      .buildWhere(foreignKey, data[primaryKey])
+    const flatRelationData = await this.DB.buildTable(Model.table)
+      .buildWhere(foreignKey, model[primaryKey])
       .find()
 
-    if (modelData) {
+    if (flatRelationData) {
       // @ts-ignore
-      data[propertyName] = new Model()
+      model[propertyName] = new Model()
 
-      Object.keys(modelData).forEach(key => {
+      Object.keys(flatRelationData).forEach(key => {
         if (!columnDictionary[key]) {
-          throw new InternalServerException(
-            `The field ${key} has not been mapped in some of your @Column annotation in ${Model.name} Model`,
-          )
+          throw new NotMappedColumnException(key, Model.name)
         }
 
-        data[propertyName][columnDictionary[key]] = modelData[key]
+        model[propertyName][columnDictionary[key]] = flatRelationData[key]
       })
     }
 
-    return data
+    return model
   }
 
-  private async hasMany(data: any, relation: RelationContract): Promise<any> {
+  private async hasMany(
+    model: typeof Model,
+    relation: HasOneContract,
+  ): Promise<typeof Model> {
     const Model = relation.model()
     const foreignKey = relation.foreignKey
     const primaryKey = relation.primaryKey
     const propertyName = relation.propertyName
     const columnDictionary = Model.columnDictionary
 
-    data[propertyName] = []
+    model[propertyName] = []
 
-    const modelsData = await this.DB.buildTable(Model.table)
-      .buildWhere(foreignKey, data[primaryKey])
+    const flatRelationsData = await this.DB.buildTable(Model.table)
+      .buildWhere(foreignKey, model[primaryKey])
       .findMany()
 
-    modelsData.forEach(modelData => {
+    flatRelationsData.forEach(flatRelationData => {
       // @ts-ignore
       const modelRelation = new Model()
 
-      Object.keys(modelData).forEach(key => {
+      Object.keys(flatRelationData).forEach(key => {
         if (!columnDictionary[key]) {
-          throw new InternalServerException(
-            `The field ${key} has not been mapped in some of your @Column annotation in ${Model.name} Model`,
-          )
+          throw new NotMappedColumnException(key, Model.name)
         }
 
-        modelRelation[columnDictionary[key]] = modelData[key]
+        modelRelation[columnDictionary[key]] = flatRelationData[key]
       })
 
-      data[propertyName].push(modelRelation)
+      model[propertyName].push(modelRelation)
     })
 
-    return data
+    return model
   }
 
-  private async belongsTo(data: any, relation: RelationContract): Promise<any> {
-    return this.hasOne(data, relation)
-  }
-
-  private async manyToMany(
-    data: any,
-    relation: ManyToManyContract,
-  ): Promise<any> {
+  private async belongsTo(
+    model: typeof Model,
+    relation: BelongsToContract,
+  ): Promise<typeof Model> {
     const Model = relation.model()
-    const pivotTableName =
-      relation.pivotTableName || `${relation.localTableName}_${Model.table}`
-    const relationPrimaryKey = relation.relationPrimaryKey || Model.primaryKey
-    const pivotRelationForeignKey =
-      relation.relationPrimaryKey || `${Model.table}_id`
+    const primaryKey = relation.primaryKey
+    const foreignKey = relation.foreignKey
     const propertyName = relation.propertyName
     const columnDictionary = Model.columnDictionary
 
-    data[propertyName] = []
+    model[propertyName] = null
+
+    const flatRelationData = await this.DB.buildTable(Model.table)
+      .buildWhere(foreignKey, model[primaryKey])
+      .find()
+
+    if (flatRelationData) {
+      // @ts-ignore
+      model[propertyName] = new Model()
+
+      Object.keys(flatRelationData).forEach(key => {
+        if (!columnDictionary[key]) {
+          throw new NotMappedColumnException(key, Model.name)
+        }
+
+        model[propertyName][columnDictionary[key]] = flatRelationData[key]
+      })
+    }
+
+    return model
+  }
+
+  private async manyToMany(
+    model: typeof Model,
+    relation: ManyToManyContract,
+  ): Promise<typeof Model> {
+    relation = new RelationContractGenerator()
+      // @ts-ignore
+      .setModel(model.class)
+      .setRelationModel(relation.model)
+      .manyToMany(relation.propertyName, relation, true)
+
+    const Model = relation.model()
+    const propertyName = relation.propertyName
+    const pivotTableName = relation.pivotTableName
+    const relationPrimaryKey = relation.relationPrimaryKey
+    const pivotRelationForeignKey = relation.pivotRelationForeignKey
+    const columnDictionary = Model.columnDictionary
+
+    model[propertyName] = []
 
     const pivotTableData = await this.DB.buildTable(pivotTableName)
-      .buildWhere(relation.pivotLocalForeignKey, data[relation.localPrimaryKey])
+      .buildWhere(
+        relation.pivotLocalForeignKey,
+        model[relation.localPrimaryKey],
+      )
       .findMany()
+
+    // @ts-ignore
+    model.$extras = pivotTableData
 
     const relationIds = pivotTableData.map(
       data => data[pivotRelationForeignKey],
     )
 
-    const modelsData = await this.DB.buildTable(Model.table)
+    const flatRelationsData = await this.DB.buildTable(Model.table)
       .buildWhereIn(relationPrimaryKey, relationIds)
       .findMany()
 
-    modelsData.forEach(modelData => {
+    flatRelationsData.forEach(flatRelationData => {
       // @ts-ignore
       const modelRelation = new Model()
 
-      Object.keys(modelData).forEach(key => {
+      Object.keys(flatRelationData).forEach(key => {
         if (!columnDictionary[key]) {
-          throw new InternalServerException(
-            `The field ${key} has not been mapped in some of your @Column annotation in ${Model.name} Model`,
-          )
+          throw new NotMappedColumnException(key, Model.name)
         }
 
-        modelRelation[columnDictionary[key]] = modelData[key]
+        modelRelation[columnDictionary[key]] = flatRelationData[key]
       })
 
-      data[propertyName].push(modelRelation)
+      model[propertyName].push(modelRelation)
     })
 
-    return data
+    return model
   }
 }
