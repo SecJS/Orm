@@ -276,7 +276,7 @@ export class OrmQueryBuilder<Class extends typeof Model> {
     }
 
     if (Is.String(statement)) {
-      statement = reverseDictionary[statement]
+      statement = reverseDictionary[statement] || statement
 
       // @ts-ignore
       this.DB.buildWhere(statement, value)
@@ -288,11 +288,11 @@ export class OrmQueryBuilder<Class extends typeof Model> {
       let newStatement: any = {}
 
       Object.keys(statement).forEach(key => {
-        newStatement[reverseDictionary[key]] = statement[key]
+        newStatement[reverseDictionary[key] || key] = statement[key]
       })
 
       // @ts-ignore
-      this.DB.buildWhere(statement)
+      this.DB.buildWhere(newStatement)
 
       return this
     }
@@ -312,7 +312,7 @@ export class OrmQueryBuilder<Class extends typeof Model> {
     }
 
     if (Is.String(statement)) {
-      statement = reverseDictionary[statement]
+      statement = reverseDictionary[statement] || statement
 
       // @ts-ignore
       this.DB.buildOrWhere(statement, value)
@@ -324,11 +324,11 @@ export class OrmQueryBuilder<Class extends typeof Model> {
       let newStatement: any = {}
 
       Object.keys(statement).forEach(key => {
-        newStatement[reverseDictionary[key]] = statement[key]
+        newStatement[reverseDictionary[key] || key] = statement[key]
       })
 
       // @ts-ignore
-      this.DB.buildOrWhere(statement)
+      this.DB.buildOrWhere(newStatement)
 
       return this
     }
@@ -348,7 +348,7 @@ export class OrmQueryBuilder<Class extends typeof Model> {
     }
 
     if (Is.String(statement)) {
-      statement = reverseDictionary[statement]
+      statement = reverseDictionary[statement] || statement
 
       // @ts-ignore
       this.DB.buildWhereLike(statement, value)
@@ -360,11 +360,11 @@ export class OrmQueryBuilder<Class extends typeof Model> {
       let newStatement: any = {}
 
       Object.keys(statement).forEach(key => {
-        newStatement[reverseDictionary[key]] = statement[key]
+        newStatement[reverseDictionary[key] || key] = statement[key]
       })
 
       // @ts-ignore
-      this.DB.buildWhereLike(statement)
+      this.DB.buildWhereLike(newStatement)
 
       return this
     }
@@ -384,7 +384,7 @@ export class OrmQueryBuilder<Class extends typeof Model> {
     }
 
     if (Is.String(statement)) {
-      statement = reverseDictionary[statement]
+      statement = reverseDictionary[statement] || statement
 
       // @ts-ignore
       this.DB.buildWhereILike(statement, value)
@@ -396,11 +396,11 @@ export class OrmQueryBuilder<Class extends typeof Model> {
       let newStatement: any = {}
 
       Object.keys(statement).forEach(key => {
-        newStatement[reverseDictionary[key]] = statement[key]
+        newStatement[reverseDictionary[key] || key] = statement[key]
       })
 
       // @ts-ignore
-      this.DB.buildWhereILike(statement)
+      this.DB.buildWhereILike(newStatement)
 
       return this
     }
@@ -412,7 +412,7 @@ export class OrmQueryBuilder<Class extends typeof Model> {
   ): this {
     const reverseDictionary = this.Model.reverseColumnDictionary()
 
-    this.DB.buildWhereIn(reverseDictionary[columnName], values)
+    this.DB.buildWhereIn(reverseDictionary[columnName] || columnName, values)
 
     return this
   }
@@ -423,7 +423,7 @@ export class OrmQueryBuilder<Class extends typeof Model> {
   ): this {
     const reverseDictionary = this.Model.reverseColumnDictionary()
 
-    this.DB.buildWhereNotIn(reverseDictionary[columnName], values)
+    this.DB.buildWhereNotIn(reverseDictionary[columnName] || columnName, values)
 
     return this
   }
@@ -434,7 +434,10 @@ export class OrmQueryBuilder<Class extends typeof Model> {
   ): this {
     const reverseDictionary = this.Model.reverseColumnDictionary()
 
-    this.DB.buildWhereBetween(reverseDictionary[columnName], values)
+    this.DB.buildWhereBetween(
+      reverseDictionary[columnName] || columnName,
+      values,
+    )
 
     return this
   }
@@ -445,7 +448,10 @@ export class OrmQueryBuilder<Class extends typeof Model> {
   ): this {
     const reverseDictionary = this.Model.reverseColumnDictionary()
 
-    this.DB.buildWhereNotBetween(reverseDictionary[columnName], values)
+    this.DB.buildWhereNotBetween(
+      reverseDictionary[columnName] || columnName,
+      values,
+    )
 
     return this
   }
@@ -453,7 +459,7 @@ export class OrmQueryBuilder<Class extends typeof Model> {
   whereNull(columnName: ModelPropsKeys<InstanceType<Class>>): this {
     const reverseDictionary = this.Model.reverseColumnDictionary()
 
-    this.DB.buildWhereNull(reverseDictionary[columnName])
+    this.DB.buildWhereNull(reverseDictionary[columnName] || columnName)
 
     return this
   }
@@ -461,7 +467,7 @@ export class OrmQueryBuilder<Class extends typeof Model> {
   whereNotNull(columnName: ModelPropsKeys<InstanceType<Class>>): this {
     const reverseDictionary = this.Model.reverseColumnDictionary()
 
-    this.DB.buildWhereNotNull(reverseDictionary[columnName])
+    this.DB.buildWhereNotNull(reverseDictionary[columnName] || columnName)
 
     return this
   }

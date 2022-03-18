@@ -7,6 +7,7 @@
  * file that was distributed with this source code.
  */
 
+import { Database } from '@secjs/database'
 import { ModelFactory } from './Utils/ModelFactory'
 import { ModelPropsKeys } from './Types/ModelPropsKeys'
 import { ModelPropsJson } from './Types/ModelPropsJson'
@@ -14,7 +15,6 @@ import { PaginatedResponse, String } from '@secjs/utils'
 import { OrmQueryBuilder } from './Utils/OrmQueryBuilder'
 import { ColumnContract } from './Contracts/ColumnContract'
 import { ModelPropsRecord } from './Types/ModelPropsRecord'
-import { Database, DatabaseContract } from '@secjs/database'
 import { RelationContractTypes } from './Types/RelationContractTypes'
 
 export abstract class Model {
@@ -65,34 +65,6 @@ export abstract class Model {
   $extras: any | any[]
 
   /**
-   * DB to handle all data operations
-   */
-  private static _DB: DatabaseContract
-
-  private static get DB(): DatabaseContract {
-    if (!this._DB) {
-      this._DB = new Database()
-        .connection(this.connection)
-        .buildTable(this.table)
-    }
-
-    return this._DB
-  }
-
-  /**
-   * Factory to fabricate all instances from DB data
-   */
-  private static _Factory: ModelFactory
-
-  private static get Factory(): ModelFactory {
-    if (!this._Factory) {
-      this._Factory = new ModelFactory(this.connection)
-    }
-
-    return this._Factory
-  }
-
-  /**
    * Get the subclass constructor. Example: Product, User, etc
    */
   protected get class(): typeof Model {
@@ -138,7 +110,10 @@ export abstract class Model {
   static query<Class extends typeof Model>(
     this: Class,
   ): OrmQueryBuilder<Class> {
-    return new OrmQueryBuilder<Class>(this, this.DB, this.Factory)
+    const DB = new Database().connection(this.connection).buildTable(this.table)
+    const Factory = new ModelFactory(this.connection)
+
+    return new OrmQueryBuilder<Class>(this, DB, Factory)
   }
 
   /**
@@ -224,7 +199,7 @@ export abstract class Model {
   /**
    * Return only the included relations from relations array and set the included to false again
    */
-  static getIncludedRelations() {
+  static getIncludedRelations(): RelationContractTypes[] {
     if (!this.relations || !this.relations.length) return []
 
     return this.relations.reduce((included, relation) => {

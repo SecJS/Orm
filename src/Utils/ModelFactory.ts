@@ -35,7 +35,7 @@ export class ModelFactory {
     return model
   }
 
-  private flatDataToInstance(flatData: any | any[], MainModel: any) {
+  flatDataToInstance(flatData: any | any[], MainModel: any) {
     const populateInstance = (data, instance) => {
       const SubClassModel = instance.class
       const columnDictionary = SubClassModel.columnDictionary

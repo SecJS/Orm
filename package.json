@@ -159,6 +159,6 @@
     }
   },
   "dependencies": {
-    "@secjs/database": "1.0.6"
+    "@secjs/database": "1.0.9"
   }
 }

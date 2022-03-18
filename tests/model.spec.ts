@@ -18,16 +18,16 @@ describe('\n Model Class', () => {
   let DB: DatabaseContract
 
   beforeAll(async () => {
-    await Database.openConnections('postgres')
+    await Database.openConnections('postgres', 'mongo')
 
-    DB = new Database().connection('postgres')
+    DB = new Database()
   })
 
   beforeEach(async () => {
     TestDataHandler.setDB(DB)
 
-    await TestDataHandler.createTables()
-    await TestDataHandler.createData()
+    await TestDataHandler.createTables('postgres')
+    await TestDataHandler.createData('postgres')
   })
 
   it('should be able to create a new product', async () => {
@@ -196,7 +196,7 @@ describe('\n Model Class', () => {
     expect(data[0].name).toBe('iPhone 10')
   })
 
-  it('should be able to create custom function using the query builder inside the model', async () => {
+  it('should be able to create custom method using the query builder inside the model', async () => {
     const user = await UserModel.getOneWithRoles(1)
 
     const userJson = user.toJSON()
@@ -210,10 +210,11 @@ describe('\n Model Class', () => {
   })
 
   afterEach(async () => {
-    await TestDataHandler.dropTables()
+    await TestDataHandler.dropTables('mongo')
+    await TestDataHandler.dropTables('postgres')
   })
 
   afterAll(async () => {
-    await Database.closeConnections('postgres')
+    await Database.closeConnections('postgres', 'mongo')
   })
 })
