@@ -28,6 +28,6 @@ export class Role extends Model {
   @Column({ isUpdatedAt: true })
   public updatedAt: Date
 
-  @ManyToMany(() => UserModel)
+  @ManyToMany(() => UserModel, { pivotTableName: 'users_roles' })
   public users: UserModel[]
 }

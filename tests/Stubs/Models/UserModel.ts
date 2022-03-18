@@ -37,6 +37,15 @@ export class UserModel extends Model {
   @HasMany(() => Product)
   public products: Product[]
 
-  @ManyToMany(() => Role, { pivotTableName: 'users_roles' })
+  @ManyToMany(() => Role)
   public roles: Role[]
+
+  static async getOneWithRoles(id: number) {
+    return this.query()
+      .where('idPrimary', id)
+      .select('idPrimary', 'name', 'email')
+      .orderBy('name', 'ASC')
+      .includes('roles')
+      .get()
+  }
 }

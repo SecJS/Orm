@@ -35,6 +35,7 @@ describe('\n Model Class', () => {
 
     const product = await Product.create({
       name: 'Macbook Pro 2020',
+      quantity: 10,
       userModelId: idPrimary,
     })
 
@@ -43,6 +44,7 @@ describe('\n Model Class', () => {
     expect(productJson.user).toBeFalsy()
     expect(productJson.productDetails).toBeFalsy()
     expect(productJson.id).toBe(4)
+    // Should be five because of persistOnly property and defaultValue
     expect(productJson.quantity).toBe(5)
     expect(productJson.name).toBe('Macbook Pro 2020')
     expect(productJson.createdAt).toBeTruthy()
@@ -58,14 +60,15 @@ describe('\n Model Class', () => {
       userModelId: idPrimary,
     })
 
-    const product = await Product.where('id', id).update({ name: 'Macbook Pro 2021' })
+    const product = await Product.update({ id }, { name: 'Macbook Pro 2021', quantity: 11 })
 
     const productJson = product.toJSON()
 
     expect(productJson.user).toBeFalsy()
     expect(productJson.productDetails).toBeFalsy()
     expect(productJson.id).toBe(4)
-    expect(productJson.quantity).toBe(10)
+    // Should be five because of persistOnly property and defaultValue
+    expect(productJson.quantity).toBe(5)
     expect(productJson.name).toBe('Macbook Pro 2021')
     expect(productJson.createdAt).toBeTruthy()
     expect(productJson.updatedAt).toBeTruthy()
@@ -80,10 +83,10 @@ describe('\n Model Class', () => {
       userModelId: idPrimary,
     })
 
-    const notSoftDeleted = await Product.where('id', id).delete()
+    const notSoftDeleted = await Product.delete({ id })
     expect(notSoftDeleted).toBeFalsy()
 
-    const deletedProduct = await Product.where('id', id).find()
+    const deletedProduct = await Product.find({ id })
     expect(deletedProduct).toBeFalsy()
   })
 
@@ -101,14 +104,14 @@ describe('\n Model Class', () => {
       productModelId: id,
     })
 
-    const softDeletedProduct = await ProductDetail.where({ id: productDetail.id }).delete()
+    const softDeletedProduct = await ProductDetail.delete({ id: productDetail.id })
 
     expect(softDeletedProduct).toBeTruthy()
     expect(softDeletedProduct.deletedAt).toBeTruthy()
   })
 
   it('should return all data from Product model with user and productDetails included', async () => {
-    const models = await Product.includes('user').includes('productDetails').findMany()
+    const models = await Product.query().includes('user').includes('productDetails').getMany()
 
     const firstModelJson = models[0].toJSON()
 
@@ -124,7 +127,7 @@ describe('\n Model Class', () => {
   })
 
   it('should return one data from Product model with user and productDetails included', async () => {
-    const product = await Product.includes('user').includes('productDetails').find()
+    const product = await Product.query().includes('user').includes('productDetails').get()
 
     const productJson = product.toJSON()
 
@@ -138,7 +141,7 @@ describe('\n Model Class', () => {
   })
 
   it('should return all data from User model with roles included', async () => {
-    const user = await UserModel.includes('roles').find()
+    const user = await UserModel.query().includes('roles').get()
 
     const userJson = user.toJSON()
 
@@ -154,14 +157,14 @@ describe('\n Model Class', () => {
   })
 
   it('should get all data from Product only where quantity is 10 and orderBy name', async () => {
-    const products = await Product.where({ quantity: 10 }).orderBy('name', 'desc').findMany()
+    const products = await Product.query().where({ quantity: 10 }).orderBy('name', 'desc').getMany()
 
     expect(products.length).toBe(2)
     expect(products[0].name).toBe('iPhone 11')
   })
 
   it('should be able to get Product paginated using skip and limit', async () => {
-    const products = await Product.skip(0).limit(1).findMany()
+    const products = await Product.query().skip(0).limit(1).getMany()
 
     expect(products.length).toBe(1)
     expect(products[0].id).toBe(1)
@@ -191,6 +194,19 @@ describe('\n Model Class', () => {
     expect(data.length).toBe(1)
     expect(data[0].id).toBe(1)
     expect(data[0].name).toBe('iPhone 10')
+  })
+
+  it('should be able to create custom function using the query builder inside the model', async () => {
+    const user = await UserModel.getOneWithRoles(1)
+
+    const userJson = user.toJSON()
+
+    expect(userJson.idPrimary).toBe(1)
+    expect(userJson.name).toBe('Victor')
+    expect(userJson.email).toBe('txsoura@gmail.com')
+    expect(userJson.createdAt).toBeFalsy()
+    expect(userJson.updatedAt).toBeFalsy()
+    expect(userJson.roles.length).toBe(2)
   })
 
   afterEach(async () => {

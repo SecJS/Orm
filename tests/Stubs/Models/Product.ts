@@ -15,6 +15,8 @@ import { HasMany } from '../../../src/Decorators/HasMany'
 import { BelongsTo } from '../../../src/Decorators/BelongsTo'
 
 export class Product extends Model {
+  static persistOnly = ['name', 'userModelId']
+
   @Column()
   public id: number
 

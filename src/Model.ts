@@ -10,13 +10,12 @@
 import { ModelFactory } from './Utils/ModelFactory'
 import { ModelPropsKeys } from './Types/ModelPropsKeys'
 import { ModelPropsJson } from './Types/ModelPropsJson'
+import { PaginatedResponse, String } from '@secjs/utils'
+import { OrmQueryBuilder } from './Utils/OrmQueryBuilder'
 import { ColumnContract } from './Contracts/ColumnContract'
 import { ModelPropsRecord } from './Types/ModelPropsRecord'
-import { Is, PaginatedResponse, String } from '@secjs/utils'
 import { Database, DatabaseContract } from '@secjs/database'
-import { ModelRelationsKeys } from './Types/ModelRelationsKeys'
 import { RelationContractTypes } from './Types/RelationContractTypes'
-import { NotFoundRelationException } from './Exceptions/NotFoundRelationException'
 
 export abstract class Model {
   /**
@@ -38,6 +37,11 @@ export abstract class Model {
    * The primary key to build relationships across models
    */
   static primaryKey: string
+
+  /**
+   * Defines the attributes that are allowed to be persisted in Database
+   */
+  static persistOnly: string[]
 
   /**
    * All the model columns mapped
@@ -106,6 +110,7 @@ export abstract class Model {
     this.defineStatic('columns', [])
     this.defineStatic('relations', [])
     this.defineStatic('primaryKey', 'id')
+    this.defineStatic('persistOnly', ['*'])
     this.defineStatic('columnDictionary', {})
     this.defineStatic('connection', 'default')
     this.defineStatic('table', String.toSnakeCase(String.pluralize(this.name)))
@@ -130,19 +135,20 @@ export abstract class Model {
     this.relations.push(relation)
   }
 
+  static query<Class extends typeof Model>(
+    this: Class,
+  ): OrmQueryBuilder<Class> {
+    return new OrmQueryBuilder<Class>(this, this.DB, this.Factory)
+  }
+
   /**
    * Get one data in DB and return as a subclass instance
    */
   static async find<Class extends typeof Model>(
     this: Class,
+    where?: ModelPropsRecord<InstanceType<Class>>,
   ): Promise<InstanceType<Class>> {
-    const flatData = await this.DB.find()
-
-    if (!flatData) {
-      return null
-    }
-
-    return this.Factory.fabricate(flatData, this)
+    return this.query().where(where).get()
   }
 
   /**
@@ -150,14 +156,9 @@ export abstract class Model {
    */
   static async findMany<Class extends typeof Model>(
     this: Class,
+    where?: ModelPropsRecord<InstanceType<Class>>,
   ): Promise<InstanceType<Class>[]> {
-    const flatData = await this.DB.findMany()
-
-    if (!flatData || !flatData.length) {
-      return []
-    }
-
-    return this.Factory.fabricate(flatData, this)
+    return this.query().where(where).getMany()
   }
 
   /**
@@ -169,18 +170,9 @@ export abstract class Model {
     page: number,
     limit: number,
     resourceUrl = '/',
+    where?: ModelPropsRecord<InstanceType<Class>>,
   ): Promise<PaginatedResponse<InstanceType<Class>[]>> {
-    const { data, meta, links } = await this.DB.paginate(
-      page,
-      limit,
-      resourceUrl,
-    )
-
-    return {
-      meta,
-      links,
-      data: await this.Factory.fabricate(data, this),
-    }
+    return this.query().where(where).paginate(page, limit, resourceUrl)
   }
 
   /**
@@ -190,10 +182,9 @@ export abstract class Model {
     this: Class,
     page: number,
     limit: number,
+    where?: ModelPropsRecord<InstanceType<Class>>,
   ): Promise<InstanceType<Class>[]> {
-    const flatData = await this.DB.forPage(page, limit)
-
-    return this.Factory.fabricate(flatData, this)
+    return this.query().where(where).forPage(page, limit)
   }
 
   /**
@@ -203,43 +194,7 @@ export abstract class Model {
     this: Class,
     values: ModelPropsRecord<InstanceType<Class>>,
   ): Promise<InstanceType<Class>> {
-    const createObject: any = {}
-    const reverseDictionary = this.reverseColumnDictionary()
-    const primaryKey = reverseDictionary[this.primaryKey]
-
-    Object.keys(values).forEach(key => {
-      createObject[reverseDictionary[key]] = values[key]
-    })
-
-    // Used for createdAt and updatedAt
-    const date = new Date()
-
-    this.columns.forEach(c => {
-      // Set createdAt only if it does not exist in createObject
-      if (c.isCreatedAt && !createObject[c.columnName]) {
-        createObject[c.columnName] = date
-
-        return
-      }
-
-      // Set updatedAt only if it does not exist in createObject
-      if (c.isUpdatedAt && !createObject[c.columnName]) {
-        createObject[c.columnName] = date
-
-        return
-      }
-
-      // Set the default value of the column only if it does not exist in createObject, and it's not a PK
-      if (!c.isPrimary && !createObject[c.columnName]) {
-        createObject[c.columnName] = c.defaultValue
-
-        return
-      }
-    })
-
-    const [id] = await this.DB.insert(createObject, primaryKey)
-
-    return this.where(primaryKey, id).find()
+    return this.query().create(values)
   }
 
   /**
@@ -247,35 +202,13 @@ export abstract class Model {
    */
   static async update<Class extends typeof Model>(
     this: Class,
+    where: ModelPropsRecord<InstanceType<Class>>,
     key:
       | ModelPropsKeys<InstanceType<Class>>
       | ModelPropsRecord<InstanceType<Class>>,
     value?: any,
   ): Promise<InstanceType<Class>> {
-    const updateObject: any = {}
-    const reverseDictionary = this.reverseColumnDictionary()
-    const primaryKey = reverseDictionary[this.primaryKey]
-
-    if (Is.Object(key)) {
-      Object.keys(key).forEach(k => {
-        updateObject[reverseDictionary[k]] = key[k]
-      })
-    } else if (Is.String(key)) {
-      updateObject[reverseDictionary[key]] = value
-    }
-
-    this.columns.forEach(c => {
-      // Set updatedAt only if it does not exist in updateObject
-      if (c.isUpdatedAt && !updateObject[c.columnName]) {
-        updateObject[c.columnName] = new Date()
-
-        return
-      }
-    })
-
-    const [id] = await this.DB.update(updateObject, primaryKey)
-
-    return this.where(primaryKey, id).find()
+    return this.query().where(where).update(key, value)
   }
 
   /**
@@ -283,122 +216,9 @@ export abstract class Model {
    */
   static async delete<Class extends typeof Model>(
     this: Class,
+    where: ModelPropsRecord<InstanceType<Class>>,
   ): Promise<InstanceType<Class>> {
-    const deletedAtColumn = this.columns.find(c => c.isDeletedAt)
-
-    if (deletedAtColumn) {
-      const updateObject = {}
-
-      updateObject[deletedAtColumn.columnName] = new Date()
-
-      return this.update(updateObject)
-    }
-
-    await this.DB.delete()
-  }
-
-  /**
-   * Build a where query to be used inside other Model methods. You can
-   * call this method as many times as you want
-   */
-  static where<Class extends typeof Model>(
-    this: Class,
-    statement:
-      | string
-      | ModelPropsKeys<InstanceType<Class>>
-      | ModelPropsRecord<InstanceType<Class>>,
-    value?: any,
-  ): Class {
-    const reverseDictionary = this.reverseColumnDictionary()
-
-    if (Is.String(statement)) {
-      statement = reverseDictionary[statement]
-
-      // @ts-ignore
-      this.DB.buildWhere(statement, value)
-
-      return this
-    }
-
-    if (Is.Object(statement)) {
-      let newStatement: any = {}
-
-      Object.keys(statement).forEach(key => {
-        newStatement[reverseDictionary[key]] = statement[key]
-      })
-
-      // @ts-ignore
-      this.DB.buildWhere(statement)
-
-      return this
-    }
-  }
-
-  /**
-   * Build a join query to be used inside other Model methods. You can
-   * call this method as many times as you want
-   */
-  static includes<Class extends typeof Model>(
-    this: Class,
-    relationName: ModelRelationsKeys<InstanceType<Class>>,
-  ): Class {
-    const relation = this.relations.find(
-      relation => relation.propertyName === relationName,
-    )
-
-    if (!relation) {
-      throw new NotFoundRelationException(relationName, this.constructor.name)
-    }
-
-    relation.isIncluded = true
-
-    const index = this.relations.indexOf(relation)
-    this.relations[index] = relation
-
-    return this
-  }
-
-  /**
-   * Build a orderBy query to be used inside other Model methods. You can
-   * call this method as many times as you want
-   */
-  static orderBy<Class extends typeof Model>(
-    this: Class,
-    column: ModelPropsKeys<InstanceType<Class>>,
-    direction: 'asc' | 'desc' | 'ASC' | 'DESC',
-  ): Class {
-    const reverseDictionary = this.reverseColumnDictionary()
-
-    column = reverseDictionary[column]
-
-    if (direction === 'ASC' || direction === 'DESC') {
-      direction = direction.toLowerCase() as any
-    }
-
-    // @ts-ignore
-    this.DB.buildOrderBy(column, direction)
-
-    return this
-  }
-
-  /**
-   * Build a skip query to be used inside other Model methods. You can
-   * call this method as many times as you want
-   */
-  static skip<Class extends typeof Model>(this: Class, number: number): Class {
-    this.DB.buildSkip(number)
-
-    return this
-  }
-
-  /**
-   * Build a limit query to be used inside other Model methods. You can
-   * call this method as many times as you want
-   */
-  static limit<Class extends typeof Model>(this: Class, number: number): Class {
-    this.DB.buildLimit(number)
-
-    return this
+    return this.query().where(where).delete()
   }
 
   /**
@@ -419,7 +239,7 @@ export abstract class Model {
     }, [])
   }
 
-  private static reverseColumnDictionary() {
+  static reverseColumnDictionary() {
     const reserveDictionary: any = {}
 
     Object.keys(this.columnDictionary).forEach(
