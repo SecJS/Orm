@@ -48,4 +48,11 @@ export class UserModel extends Model {
       .includes('roles')
       .get()
   }
+
+  static async definition() {
+    return {
+      name: this.faker.name.firstName(),
+      email: this.faker.internet.email(),
+    }
+  }
 }

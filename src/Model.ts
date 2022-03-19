@@ -7,14 +7,16 @@
  * file that was distributed with this source code.
  */
 
+import { faker } from '@faker-js/faker'
 import { Database } from '@secjs/database'
 import { ModelFactory } from './Utils/ModelFactory'
+import { ModelGenerator } from './Utils/ModelGenerator'
 import { ModelPropsKeys } from './Types/ModelPropsKeys'
 import { ModelPropsJson } from './Types/ModelPropsJson'
 import { PaginatedResponse, String } from '@secjs/utils'
-import { OrmQueryBuilder } from './Utils/OrmQueryBuilder'
 import { ColumnContract } from './Contracts/ColumnContract'
 import { ModelPropsRecord } from './Types/ModelPropsRecord'
+import { ModelQueryBuilder } from './Utils/ModelQueryBuilder'
 import { RelationContractTypes } from './Types/RelationContractTypes'
 
 export abstract class Model {
@@ -59,6 +61,14 @@ export abstract class Model {
   static relations: RelationContractTypes[]
 
   /**
+   * Method that will be executed by factories
+   */
+  static definition: any | Promise<any>
+  /**
+   * Faker.js library to use inside definition method
+   */
+  protected static faker: typeof faker = faker
+  /**
    * Extras properties that could be added to Model, usually the data
    * inside pivotTable from ManyToMany Relations
    */
@@ -81,6 +91,7 @@ export abstract class Model {
 
     this.defineStatic('columns', [])
     this.defineStatic('relations', [])
+    this.defineStatic('definition', null)
     this.defineStatic('primaryKey', 'id')
     this.defineStatic('persistOnly', ['*'])
     this.defineStatic('columnDictionary', {})
@@ -109,11 +120,11 @@ export abstract class Model {
 
   static query<Class extends typeof Model>(
     this: Class,
-  ): OrmQueryBuilder<Class> {
+  ): ModelQueryBuilder<Class> {
     const DB = new Database().connection(this.connection).buildTable(this.table)
-    const Factory = new ModelFactory(this.connection)
+    const Generator = new ModelGenerator(this.connection)
 
-    return new OrmQueryBuilder<Class>(this, DB, Factory)
+    return new ModelQueryBuilder<Class>(this, DB, Generator)
   }
 
   /**
@@ -194,6 +205,21 @@ export abstract class Model {
     where: ModelPropsRecord<InstanceType<Class>>,
   ): Promise<InstanceType<Class>> {
     return this.query().where(where).delete()
+  }
+
+  /**
+   * Generate a ModelFactory instance using SubClass
+   */
+  static factory<Class extends typeof Model>(
+    this: Class,
+    returning = '*',
+  ): ModelFactory<Class> {
+    return new ModelFactory(
+      this,
+      this.query(),
+      this.definition.bind({ faker: this.faker }),
+      returning,
+    )
   }
 
   /**

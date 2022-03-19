@@ -18,16 +18,16 @@ describe('\n Model Class', () => {
   let DB: DatabaseContract
 
   beforeAll(async () => {
-    await Database.openConnections('postgres', 'mongo')
+    await Database.openConnections('postgres')
 
     DB = new Database()
+    TestDataHandler.setDB(DB)
+
+    await TestDataHandler.createTables()
   })
 
   beforeEach(async () => {
-    TestDataHandler.setDB(DB)
-
-    await TestDataHandler.createTables('postgres')
-    await TestDataHandler.createData('postgres')
+    await TestDataHandler.createData()
   })
 
   it('should be able to create a new product', async () => {
@@ -66,7 +66,7 @@ describe('\n Model Class', () => {
 
     expect(productJson.user).toBeFalsy()
     expect(productJson.productDetails).toBeFalsy()
-    expect(productJson.id).toBe(4)
+    expect(productJson.id).toBe(8)
     // Should be five because of persistOnly property and defaultValue
     expect(productJson.quantity).toBe(5)
     expect(productJson.name).toBe('Macbook Pro 2021')
@@ -159,7 +159,7 @@ describe('\n Model Class', () => {
   it('should get all data from Product only where quantity is 10 and orderBy name', async () => {
     const products = await Product.query().where({ quantity: 10 }).orderBy('name', 'desc').getMany()
 
-    expect(products.length).toBe(2)
+    expect(products.length).toBe(16)
     expect(products[0].name).toBe('iPhone 11')
   })
 
@@ -183,14 +183,14 @@ describe('\n Model Class', () => {
     const { meta, links, data } = await Product.paginate(0, 1, '/products')
 
     expect(meta.itemCount).toBe(1)
-    expect(meta.totalItems).toBe(3)
-    expect(meta.totalPages).toBe(3)
+    expect(meta.totalItems).toBe(36)
+    expect(meta.totalPages).toBe(36)
     expect(meta.currentPage).toBe(0)
     expect(meta.itemsPerPage).toBe(1)
     expect(links.first).toBe('/products?limit=1')
     expect(links.previous).toBe('/products?page=0&limit=1')
     expect(links.next).toBe('/products?page=1&limit=1')
-    expect(links.last).toBe('/products?page=3&limit=1')
+    expect(links.last).toBe('/products?page=36&limit=1')
     expect(data.length).toBe(1)
     expect(data[0].id).toBe(1)
     expect(data[0].name).toBe('iPhone 10')
@@ -209,12 +209,51 @@ describe('\n Model Class', () => {
     expect(userJson.roles.length).toBe(2)
   })
 
-  afterEach(async () => {
-    await TestDataHandler.dropTables('mongo')
-    await TestDataHandler.dropTables('postgres')
+  it('should be able to make definitions of products', async () => {
+    const products = await Product.factory().count(10).make<Product[]>()
+    const product = products[0]
+
+    expect(products.length).toBe(10)
+    expect(product.id).toBeTruthy()
+    expect(product.name).toBeTruthy()
+    expect(product.quantity).toBeTruthy()
+    expect(product.userModelId).toBeTruthy()
+    expect(product.createdAt).toBeTruthy()
+    expect(product.updatedAt).toBeTruthy()
+
+    // Check if is not a promise resolved object
+    // @ts-ignore
+    expect(product.userModelId instanceof Promise).toBeFalsy()
+  })
+
+  it('should be able to create definitions of products', async () => {
+    const factory = Product.factory()
+
+    expect(await factory.assertCount(45)).toBeTruthy()
+
+    const products = await factory.count(10).create<Product[]>()
+    const product = products[0]
+
+    expect(products.length).toBe(10)
+    expect(product.id).toBeTruthy()
+    expect(product.name).toBeTruthy()
+    expect(product.quantity).toBeTruthy()
+    expect(product.userModelId).toBeTruthy()
+    expect(product.createdAt).toBeTruthy()
+    expect(product.updatedAt).toBeTruthy()
+
+    // Check if is not a promise resolved object
+    // @ts-ignore
+    expect(product.userModelId instanceof Promise).toBeFalsy()
+
+    expect(await factory.assertCount(55)).toBeTruthy()
+    expect(await factory.assertHas({ id: product.id })).toBeTruthy()
+    expect(await factory.assertMissing({ id: 9999 })).toBeTruthy()
   })
 
   afterAll(async () => {
-    await Database.closeConnections('postgres', 'mongo')
+    await TestDataHandler.dropTables()
+
+    await Database.closeConnections('postgres')
   })
 })

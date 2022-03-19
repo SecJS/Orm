@@ -8,7 +8,7 @@
  */
 
 import { Model } from '../Model'
-import { ModelFactory } from './ModelFactory'
+import { ModelGenerator } from './ModelGenerator'
 import { DatabaseContract } from '@secjs/database'
 import { Is, PaginatedResponse } from '@secjs/utils'
 import { ModelPropsKeys } from '../Types/ModelPropsKeys'
@@ -16,19 +16,19 @@ import { ModelPropsRecord } from '../Types/ModelPropsRecord'
 import { ModelRelationsKeys } from '../Types/ModelRelationsKeys'
 import { NotFoundRelationException } from '../Exceptions/NotFoundRelationException'
 
-export class OrmQueryBuilder<Class extends typeof Model> {
+export class ModelQueryBuilder<Class extends typeof Model> {
   private readonly Model: typeof Model
   private readonly DB: DatabaseContract
-  private readonly Factory: ModelFactory
+  private readonly Generator: ModelGenerator
 
   public constructor(
     model: typeof Model,
     DB: DatabaseContract,
-    Factory: ModelFactory,
+    Generator: ModelGenerator,
   ) {
     this.Model = model
     this.DB = DB
-    this.Factory = Factory
+    this.Generator = Generator
   }
 
   async get(): Promise<InstanceType<Class>> {
@@ -38,7 +38,7 @@ export class OrmQueryBuilder<Class extends typeof Model> {
       return null
     }
 
-    return this.Factory.fabricate(flatData, this.Model)
+    return this.Generator.generate(flatData, this.Model)
   }
 
   async getMany(): Promise<InstanceType<Class>[]> {
@@ -48,13 +48,35 @@ export class OrmQueryBuilder<Class extends typeof Model> {
       return []
     }
 
-    return this.Factory.fabricate(flatData, this.Model)
+    return this.Generator.generate(flatData, this.Model)
+  }
+
+  async getManyCount(): Promise<{
+    number: number
+    data: InstanceType<Class>[]
+  }> {
+    const data = await this.getMany()
+
+    return {
+      number: data.length,
+      data,
+    }
+  }
+
+  async count(): Promise<number> {
+    const flatData = await this.DB.findMany()
+
+    if (!flatData || !flatData.length) {
+      return 0
+    }
+
+    return flatData.length
   }
 
   async forPage(page: number, limit: number): Promise<InstanceType<Class>[]> {
     const flatData = await this.DB.forPage(page, limit)
 
-    return this.Factory.fabricate(flatData, this.Model)
+    return this.Generator.generate(flatData, this.Model)
   }
 
   async paginate(
@@ -71,7 +93,7 @@ export class OrmQueryBuilder<Class extends typeof Model> {
     return {
       meta,
       links,
-      data: await this.Factory.fabricate(data, this.Model),
+      data: await this.Generator.generate(data, this.Model),
     }
   }
 

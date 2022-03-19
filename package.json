@@ -159,6 +159,7 @@
     }
   },
   "dependencies": {
+    "@faker-js/faker": "6.0.0",
     "@secjs/database": "1.0.9"
   }
 }

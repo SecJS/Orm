@@ -40,4 +40,12 @@ export class Product extends Model {
 
   @HasMany(() => ProductDetail)
   public productDetails: ProductDetail[]
+
+  static async definition() {
+    return {
+      name: this.faker.name.firstName(),
+      quantity: this.faker.datatype.number(),
+      userModelId: UserModel.factory('idPrimary'),
+    }
+  }
 }

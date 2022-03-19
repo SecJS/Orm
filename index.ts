@@ -31,8 +31,4 @@ export * from './src/Contracts/ManyToManyContract'
 // Model
 export * from './src/Model'
 
-// TODO Criar classe Factory
-//  https://laravel.com/docs/9.x/database-testing#defining-model-factories
-// TODO Adicionar assertions nas factories para fazer validações.
-//  https://laravel.com/docs/9.x/database-testing#available-assertions
 // TODO Documentar
