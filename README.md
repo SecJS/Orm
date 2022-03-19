@@ -489,17 +489,12 @@ const productsSameOwner = await Product.factory().count(10).create<Product[]>({ 
 > Factory has some assertions that you can make to use in tests
 
 ```ts
-import { Product } from './Product'
+const factory = User.factory()
 
-const { id } = await User.create({ name: 'João' })
-
-const factory = Product.factory()
-
-await factory.count(10).create<Product[]>()
-await factory.count(10).create<Product[]>({ userId: id })
+await factory.count(10).create<User[]>()
 
 // Assert that user table has twenty users
-await factory.assertCount(20) // true
+await factory.assertCount(10) // true
 
 // Assert that exists at least one user with name 'João'
 await factory.assertHas({ name: 'João' }) // true
