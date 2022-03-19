@@ -8,6 +8,7 @@
  */
 
 import { Model } from '../Model'
+import { String } from '@secjs/utils'
 import { RelationENUM } from '../Enums/RelationENUM'
 import { HasOneOptions } from '../Contracts/HasOneOptions'
 import { HasManyOptions } from '../Contracts/HasManyOptions'
@@ -67,8 +68,8 @@ export class RelationContractGenerator {
     defaultValues.propertyName = prop
     defaultValues.model = this.RelationModel
     defaultValues.relationType = RelationENUM.BELONGS_TO
-    defaultValues.primaryKey = `${prop}Id`
-    defaultValues.foreignKey = this.Model.primaryKey
+    defaultValues.primaryKey = this.Model.primaryKey
+    defaultValues.foreignKey = `${prop}Id`
 
     return Object.assign({}, defaultValues, opts)
   }
@@ -87,17 +88,23 @@ export class RelationContractGenerator {
 
     // Many
     defaultValues.localPrimaryKey = this.Model.primaryKey
-    defaultValues.pivotLocalForeignKey = `${this.Model.table}_id`
+    defaultValues.pivotLocalForeignKey = `${String.singularize(
+      this.Model.table,
+    )}Id`
 
     if (full) {
       const RelationModel = this.RelationModel()
 
       // To
-      defaultValues.pivotTableName = `${this.Model.table}_${RelationModel.table}`
+      defaultValues.pivotTableName = `${String.singularize(
+        this.Model.table,
+      )}_${String.singularize(RelationModel.table)}`
 
       // Many
       defaultValues.relationPrimaryKey = RelationModel.primaryKey
-      defaultValues.pivotRelationForeignKey = `${RelationModel.table}_id`
+      defaultValues.pivotRelationForeignKey = `${String.singularize(
+        RelationModel.table,
+      )}Id`
     }
 
     return Object.assign({}, defaultValues, opts)

@@ -18,6 +18,7 @@ import { ColumnContract } from './Contracts/ColumnContract'
 import { ModelPropsRecord } from './Types/ModelPropsRecord'
 import { ModelQueryBuilder } from './Utils/ModelQueryBuilder'
 import { RelationContractTypes } from './Types/RelationContractTypes'
+import { ModelRelationsKeys } from './Types/ModelRelationsKeys'
 
 export abstract class Model {
   /**
@@ -203,8 +204,9 @@ export abstract class Model {
   static async delete<Class extends typeof Model>(
     this: Class,
     where: ModelPropsRecord<InstanceType<Class>>,
+    force = false,
   ): Promise<InstanceType<Class>> {
-    return this.query().where(where).delete()
+    return this.query().where(where).delete(force)
   }
 
   /**
@@ -289,5 +291,30 @@ export abstract class Model {
     if (this.$extras) json.$extras = this.$extras
 
     return json
+  }
+
+  /**
+   * Load a relation from your Model
+   */
+  async load(...relationsName: ModelRelationsKeys<this>[]): Promise<this> {
+    const query = this.class
+      .query()
+      .where({ [this.class.primaryKey]: this[this.class.primaryKey] })
+
+    relationsName.forEach(relationName => {
+      this[relationName] = null
+
+      // @ts-ignore
+      query.includes(relationName)
+    })
+
+    const data = await query.get()
+
+    if (!data) return this
+
+    // Update the actual instance
+    Object.keys(data).forEach(key => (this[key] = data[key]))
+
+    return this
   }
 }

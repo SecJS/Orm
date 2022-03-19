@@ -35,7 +35,7 @@ export class Product extends Model {
   @Column({ columnName: 'userId' })
   public userModelId: number
 
-  @BelongsTo(() => UserModel, { primaryKey: 'userModelId' })
+  @BelongsTo(() => UserModel, { foreignKey: 'userModelId' })
   public user: UserModel
 
   @HasMany(() => ProductDetail)

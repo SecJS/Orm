@@ -81,7 +81,7 @@ export class ModelFactory<Class extends typeof Model> {
       return this.query.create(data)
     }
 
-    const createdData = await this.query.create(data)
+    const createdData = await this.query.create(data, true)
 
     return createdData[this.returning]
   }
@@ -151,6 +151,9 @@ export class ModelFactory<Class extends typeof Model> {
     const data = await this.definition()
 
     const promises = Object.keys(data).reduce((promises, key) => {
+      // Do not execute sub factory if the value already exists in values object
+      if (values[key]) return promises
+
       if (data[key] instanceof ModelFactory) {
         promises.push(
           Promise.resolve(data[key][method]()).then(

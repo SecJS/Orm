@@ -11,22 +11,7 @@ export interface ColumnOptions {
   isPrimary?: boolean
   columnName?: string
   defaultValue?: any
-  castTo?:
-    | 'json'
-    | 'array'
-    | 'string'
-    | 'float'
-    | 'integer'
-    | 'object'
-    | 'boolean'
-    | 'date'
-    | 'dateTime'
-    | 'timestamp'
   isCreatedAt?: boolean
   isUpdatedAt?: boolean
   isDeletedAt?: boolean
-  // serialize?: any
-  // serializeAs?: any
-  // prepare?: (value: any) => void
-  // consume?: (value: any) => void
 }

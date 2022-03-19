@@ -185,7 +185,7 @@ export class ModelGenerator {
     model[propertyName] = null
 
     const flatRelationData = await this.DB.buildTable(Model.table)
-      .buildWhere(foreignKey, model[primaryKey])
+      .buildWhere(primaryKey, model[foreignKey])
       .find()
 
     if (flatRelationData) {

@@ -99,13 +99,16 @@ export class ModelQueryBuilder<Class extends typeof Model> {
 
   async create(
     values: ModelPropsRecord<InstanceType<Class>>,
+    ignorePersistOnly = false,
   ): Promise<InstanceType<Class>> {
     const createObject: any = {}
     const reverseDictionary = this.Model.reverseColumnDictionary()
     const primaryKey = reverseDictionary[this.Model.primaryKey]
 
     Object.keys(values).forEach(key => {
-      if (
+      if (ignorePersistOnly) {
+        createObject[reverseDictionary[key]] = values[key]
+      } else if (
         this.Model.persistOnly[0] === '*' ||
         this.Model.persistOnly.find(p => p === key)
       ) {
@@ -186,10 +189,10 @@ export class ModelQueryBuilder<Class extends typeof Model> {
     return this.where(primaryKey, id).get()
   }
 
-  async delete(): Promise<InstanceType<Class>> {
+  async delete(force = false): Promise<InstanceType<Class>> {
     const deletedAtColumn = this.Model.columns.find(c => c.isDeletedAt)
 
-    if (deletedAtColumn) {
+    if (deletedAtColumn && !force) {
       const updateObject = {}
 
       updateObject[deletedAtColumn.columnName] = new Date()

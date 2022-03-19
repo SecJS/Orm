@@ -22,7 +22,7 @@ export class TestDataHandler {
   static async dropTables() {
     await TestDataHandler.DB.dropTable('product_details')
     await TestDataHandler.DB.dropTable('products')
-    await TestDataHandler.DB.dropTable('users_roles')
+    await TestDataHandler.DB.dropTable('user_role')
     await TestDataHandler.DB.dropTable('roles')
     await TestDataHandler.DB.dropTable('users')
   }
@@ -42,10 +42,10 @@ export class TestDataHandler {
       tableBuilder.timestamps(true, true, true)
     })
 
-    await TestDataHandler.DB.createTable('users_roles', (tableBuilder: Knex.TableBuilder) => {
+    await TestDataHandler.DB.createTable('user_role', (tableBuilder: Knex.TableBuilder) => {
       tableBuilder.increments('id').primary()
-      tableBuilder.integer('users_id').unsigned().references('id').inTable('users')
-      tableBuilder.integer('roles_id').unsigned().references('id').inTable('roles')
+      tableBuilder.integer('userId').unsigned().references('id').inTable('users')
+      tableBuilder.integer('roleId').unsigned().references('id').inTable('roles')
     })
 
     await TestDataHandler.DB.createTable('products', (tableBuilder: Knex.TableBuilder) => {
@@ -79,11 +79,14 @@ export class TestDataHandler {
       { name: 'Owner', description: 'Server Owner' },
     ])
 
-    await TestDataHandler.DB.buildTable('users_roles').insert([
-      { users_id: userId, roles_id: roleId1 },
+    await TestDataHandler.DB.buildTable('user_role').insert([
       {
-        users_id: userId,
-        roles_id: roleId2,
+        userId: userId,
+        roleId: roleId1,
+      },
+      {
+        userId: userId,
+        roleId: roleId2,
       },
     ])
 
