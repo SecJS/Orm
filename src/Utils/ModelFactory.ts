@@ -56,10 +56,24 @@ export class ModelFactory<Class extends typeof Model> {
     return (await this.query.count()) === number
   }
 
-  async assertHas(
+  async assertExists(
     statement: ModelPropsRecord<InstanceType<Class>>,
   ): Promise<boolean> {
     return Boolean(await this.query.where(statement).get())
+  }
+
+  async assertNotExists(
+    statement: ModelPropsRecord<InstanceType<Class>>,
+  ): Promise<boolean> {
+    return !(await this.assertExists(statement))
+  }
+
+  async assertHas(
+    statement: ModelPropsRecord<InstanceType<Class>>,
+  ): Promise<boolean> {
+    const data = await this.query.where(statement).getMany()
+
+    return data.length >= 1
   }
 
   async assertMissing(
@@ -152,7 +166,7 @@ export class ModelFactory<Class extends typeof Model> {
 
     const promises = Object.keys(data).reduce((promises, key) => {
       // Do not execute sub factory if the value already exists in values object
-      if (values[key]) return promises
+      if (values && values[key]) return promises
 
       if (data[key] instanceof ModelFactory) {
         promises.push(

@@ -484,6 +484,36 @@ const productsDifOwner = await Product.factory().count(10).create<Product[]>()
 const productsSameOwner = await Product.factory().count(10).create<Product[]>({ userId: id })
 ```
 
+#### Assertions with Factory
+
+> Factory has some assertions that you can make to use in tests
+
+```ts
+import { Product } from './Product'
+
+const { id } = await User.create({ name: 'João' })
+
+const factory = Product.factory()
+
+await factory.count(10).create<Product[]>()
+await factory.count(10).create<Product[]>({ userId: id })
+
+// Assert that user table has twenty users
+await factory.assertCount(20) // true
+
+// Assert that exists at least one user with name 'João'
+await factory.assertHas({ name: 'João' }) // true
+
+// Assert that does not exist any user with name 'Victor'
+await factory.assertMissing({ name: 'Victor' }) // true
+
+// Assert that exists one user with id 1
+await factory.assertExists({ id: 1 }) // true
+
+// Assert that does not exists one user with id 9999
+await factory.assertNotExists({ id: 9999 }) // true
+```
+
 ---
 
 ## License
