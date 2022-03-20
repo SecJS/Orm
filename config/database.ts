@@ -55,7 +55,7 @@ export default {
       url: Env('DB_URL', ''),
       host: Env('DB_HOST', '127.0.0.1'),
       port: Env({ type: 'number', name: 'DB_PORT' }, 5433),
-      database: Env('DB_DATABASE', 'secjs-orm-testing'),
+      database: Env('DB_DATABASE', 'postgres'),
       user: Env('DB_USERNAME', 'postgres'),
       password: Env('DB_PASSWORD', 'root'),
     },

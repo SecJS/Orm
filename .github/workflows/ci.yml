@@ -10,6 +10,18 @@ jobs:
 
     runs-on: ubuntu-18.04
 
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_DATABASE: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: root
+          POSTGRES_ROOT_PASSWORD: root
+        ports:
+          - '5433:5432'
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 10
+
     steps:
       - name: Checkout
         uses: actions/checkout@v2
