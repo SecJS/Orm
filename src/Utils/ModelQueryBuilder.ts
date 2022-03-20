@@ -21,14 +21,10 @@ export class ModelQueryBuilder<Class extends typeof Model> {
   private readonly DB: DatabaseContract
   private readonly Generator: ModelGenerator
 
-  public constructor(
-    model: typeof Model,
-    DB: DatabaseContract,
-    Generator: ModelGenerator,
-  ) {
+  public constructor(model: typeof Model, DB: DatabaseContract) {
     this.Model = model
-    this.DB = DB
-    this.Generator = Generator
+    this.DB = DB.connection(model.connection).buildTable(model.table)
+    this.Generator = new ModelGenerator(this.Model, this.DB)
   }
 
   async get(): Promise<InstanceType<Class>> {
@@ -38,7 +34,7 @@ export class ModelQueryBuilder<Class extends typeof Model> {
       return null
     }
 
-    return this.Generator.generate(flatData, this.Model)
+    return this.Generator.generate(flatData)
   }
 
   async getMany(): Promise<InstanceType<Class>[]> {
@@ -48,7 +44,7 @@ export class ModelQueryBuilder<Class extends typeof Model> {
       return []
     }
 
-    return this.Generator.generate(flatData, this.Model)
+    return this.Generator.generate(flatData)
   }
 
   async getManyCount(): Promise<{
@@ -76,7 +72,7 @@ export class ModelQueryBuilder<Class extends typeof Model> {
   async forPage(page: number, limit: number): Promise<InstanceType<Class>[]> {
     const flatData = await this.DB.forPage(page, limit)
 
-    return this.Generator.generate(flatData, this.Model)
+    return this.Generator.generate(flatData)
   }
 
   async paginate(
@@ -93,7 +89,7 @@ export class ModelQueryBuilder<Class extends typeof Model> {
     return {
       meta,
       links,
-      data: await this.Generator.generate(data, this.Model),
+      data: await this.Generator.generate(data),
     }
   }
 

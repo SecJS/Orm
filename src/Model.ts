@@ -10,15 +10,14 @@
 import { faker } from '@faker-js/faker'
 import { Database } from '@secjs/database'
 import { ModelFactory } from './Utils/ModelFactory'
-import { ModelGenerator } from './Utils/ModelGenerator'
 import { ModelPropsKeys } from './Types/ModelPropsKeys'
 import { ModelPropsJson } from './Types/ModelPropsJson'
 import { PaginatedResponse, String } from '@secjs/utils'
 import { ColumnContract } from './Contracts/ColumnContract'
 import { ModelPropsRecord } from './Types/ModelPropsRecord'
 import { ModelQueryBuilder } from './Utils/ModelQueryBuilder'
-import { RelationContractTypes } from './Types/RelationContractTypes'
 import { ModelRelationsKeys } from './Types/ModelRelationsKeys'
+import { RelationContractTypes } from './Types/RelationContractTypes'
 
 export abstract class Model {
   /**
@@ -122,10 +121,9 @@ export abstract class Model {
   static query<Class extends typeof Model>(
     this: Class,
   ): ModelQueryBuilder<Class> {
-    const DB = new Database().connection(this.connection).buildTable(this.table)
-    const Generator = new ModelGenerator(this.connection)
+    const DB = new Database()
 
-    return new ModelQueryBuilder<Class>(this, DB, Generator)
+    return new ModelQueryBuilder<Class>(this, DB)
   }
 
   /**
