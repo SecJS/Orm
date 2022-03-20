@@ -30,5 +30,3 @@ export * from './src/Contracts/ManyToManyContract'
 
 // Model
 export * from './src/Model'
-
-// TODO Documentar

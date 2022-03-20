@@ -1,6 +1,6 @@
 {
   "name": "@secjs/orm",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Handle your application models in Node.js. Built on top of @secjs/database.",
   "license": "MIT",
   "author": "João Lenon <lenon@secjs.com.br>",

@@ -42,7 +42,7 @@ npm install @secjs/orm
 
 > To use @secjs/orm you need to set up @secjs/database first and connect it to Database.
 
-#### [Go to @secjs/database documentation]("https://github.com/SecJS/Database#readme")
+[Go to @secjs/database documentation]("https://github.com/SecJS/Database#readme")
 
 ### Model
 
