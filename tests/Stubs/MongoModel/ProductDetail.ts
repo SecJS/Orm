@@ -7,14 +7,18 @@
  * file that was distributed with this source code.
  */
 
+import { ObjectID } from 'bson'
 import { Product } from './Product'
 import { Model } from '../../../src/Model'
 import { Column } from '../../../src/Decorators/Column'
 import { BelongsTo } from '../../../src/Decorators/BelongsTo'
 
 export class ProductDetail extends Model {
-  @Column()
-  public id: number
+  static connection = 'mongo'
+  static primaryKey = 'id'
+
+  @Column({ columnName: '_id' })
+  public id: ObjectID
 
   @Column()
   public detail: string
@@ -29,7 +33,7 @@ export class ProductDetail extends Model {
   public deletedAt: Date
 
   @Column({ columnName: 'productId' })
-  public productModelId: number
+  public productModelId: ObjectID
 
   @BelongsTo(() => Product, { foreignKey: 'productModelId' })
   public product: Product

@@ -22,8 +22,10 @@ export class ModelQueryBuilder<Class extends typeof Model> {
   private readonly Generator: ModelGenerator
 
   public constructor(model: typeof Model, DB: DatabaseContract) {
+    DB.connection(model.connection).buildTable(model.table)
+
+    this.DB = DB
     this.Model = model
-    this.DB = DB.connection(model.connection).buildTable(model.table)
     this.Generator = new ModelGenerator(this.Model, this.DB)
   }
 

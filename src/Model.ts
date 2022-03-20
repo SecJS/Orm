@@ -64,10 +64,12 @@ export abstract class Model {
    * Method that will be executed by factories
    */
   static definition: any | Promise<any>
+
   /**
    * Faker.js library to use inside definition method
    */
   protected static faker: typeof faker = faker
+
   /**
    * Extras properties that could be added to Model, usually the data
    * inside pivotTable from ManyToMany Relations

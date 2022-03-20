@@ -63,7 +63,11 @@ export class RelationContractGenerator {
     return Object.assign({}, defaultValues, opts)
   }
 
-  belongsTo(prop: string, opts: BelongsToOptions): BelongsToContract {
+  belongsTo(
+    prop: string,
+    opts: BelongsToOptions,
+    full = false,
+  ): BelongsToContract {
     const defaultValues: BelongsToContract = {}
 
     defaultValues.callback = null
@@ -71,8 +75,13 @@ export class RelationContractGenerator {
     defaultValues.propertyName = prop
     defaultValues.model = this.RelationModel
     defaultValues.relationType = RelationENUM.BELONGS_TO
-    defaultValues.primaryKey = this.Model.primaryKey
     defaultValues.foreignKey = `${prop}Id`
+
+    if (full) {
+      const RelationModel = this.RelationModel()
+
+      defaultValues.primaryKey = RelationModel.primaryKey
+    }
 
     return Object.assign({}, defaultValues, opts)
   }

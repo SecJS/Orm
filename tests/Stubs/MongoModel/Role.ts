@@ -7,17 +7,24 @@
  * file that was distributed with this source code.
  */
 
-import { Product } from './Product'
+import { ObjectID } from 'bson'
+import { UserModel } from './UserModel'
 import { Model } from '../../../src/Model'
 import { Column } from '../../../src/Decorators/Column'
-import { BelongsTo } from '../../../src/Decorators/BelongsTo'
+import { ManyToMany } from '../../../src/Decorators/ManyToMany'
 
-export class ProductDetail extends Model {
-  @Column()
-  public id: number
+export class Role extends Model {
+  static connection = 'mongo'
+  static primaryKey = 'id'
+
+  @Column({ columnName: '_id' })
+  public id: ObjectID
 
   @Column()
-  public detail: string
+  public name: string
+
+  @Column()
+  public description: string
 
   @Column({ isCreatedAt: true })
   public createdAt: Date
@@ -25,12 +32,6 @@ export class ProductDetail extends Model {
   @Column({ isUpdatedAt: true })
   public updatedAt: Date
 
-  @Column({ isDeletedAt: true })
-  public deletedAt: Date
-
-  @Column({ columnName: 'productId' })
-  public productModelId: number
-
-  @BelongsTo(() => Product, { foreignKey: 'productModelId' })
-  public product: Product
+  @ManyToMany(() => UserModel, { pivotTableName: 'users_roles' })
+  public users: UserModel[]
 }

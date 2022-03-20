@@ -14,7 +14,7 @@ export class TestDataHandler {
   static DB: DatabaseContract
 
   static setDB(DB: DatabaseContract): typeof TestDataHandler {
-    TestDataHandler.DB = DB.connection('postgres')
+    TestDataHandler.DB = DB
 
     return this
   }
@@ -69,14 +69,23 @@ export class TestDataHandler {
     const [userId] = await TestDataHandler.DB.buildTable('users').insert({
       name: 'Victor',
       email: 'txsoura@gmail.com',
+      createdAt: new Date(),
+      updatedAt: new Date(),
     })
 
     const [roleId1, roleId2] = await TestDataHandler.DB.buildTable('roles').insert([
       {
         name: 'Admin',
         description: 'Server Admin',
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
-      { name: 'Owner', description: 'Server Owner' },
+      {
+        name: 'Owner',
+        description: 'Server Owner',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
     ])
 
     await TestDataHandler.DB.buildTable('user_role').insert([
@@ -95,23 +104,41 @@ export class TestDataHandler {
         name: 'iPhone 10',
         quantity: 10,
         userId: userId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
       {
         name: 'iPhone 11',
         quantity: 10,
         userId: userId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
       {
         name: 'iPhone 12',
         quantity: 11,
         userId: userId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     ])
 
     const promises = ids.map(id =>
       TestDataHandler.DB.buildTable('product_details').insert([
-        { detail: '128 GB', productId: id },
-        { detail: 'Black', productId: id },
+        {
+          detail: '128 GB',
+          productId: id,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          deletedAt: null,
+        },
+        {
+          detail: 'Black',
+          productId: id,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          deletedAt: null,
+        },
       ]),
     )
 

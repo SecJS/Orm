@@ -1,6 +1,6 @@
 {
   "name": "@secjs/orm",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Handle your application models in Node.js. Built on top of @secjs/database.",
   "license": "MIT",
   "author": "João Lenon <lenon@secjs.com.br>",
@@ -44,6 +44,7 @@
     "husky": "3.0.9",
     "jest": "27.1.0",
     "lint-staged": "9.4.3",
+    "mongodb-memory-server": "^8.4.1",
     "prettier": "2.0.5",
     "reflect-metadata": "0.1.13",
     "ts-jest": "27.0.5",
@@ -162,6 +163,6 @@
   },
   "dependencies": {
     "@faker-js/faker": "6.0.0",
-    "@secjs/database": "1.0.9"
+    "@secjs/database": "1.1.4"
   }
 }

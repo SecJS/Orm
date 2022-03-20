@@ -97,7 +97,9 @@ export class ModelGenerator {
     // Execute client callback if it exists
     if (relation.callback) await relation.callback(query)
 
-    model[propertyName] = await query.where(foreignKey, model[primaryKey]).get()
+    model[propertyName] = await query
+      .where({ [foreignKey]: model[primaryKey] })
+      .get()
 
     return model
   }
@@ -116,7 +118,7 @@ export class ModelGenerator {
     if (relation.callback) await relation.callback(query)
 
     model[propertyName] = await query
-      .where(foreignKey, model[primaryKey])
+      .where({ [foreignKey]: model[primaryKey] })
       .getMany()
 
     return model
@@ -126,6 +128,12 @@ export class ModelGenerator {
     model: typeof Model,
     relation: BelongsToContract,
   ): Promise<typeof Model> {
+    relation = new RelationContractGenerator()
+      // @ts-ignore
+      .setModel(model.class)
+      .setRelationModel(relation.model)
+      .belongsTo(relation.propertyName, relation, true)
+
     const RelationModel = relation.model()
     const primaryKey = relation.primaryKey
     const foreignKey = relation.foreignKey
@@ -135,7 +143,9 @@ export class ModelGenerator {
     // Execute client callback if it exists
     if (relation.callback) await relation.callback(query)
 
-    model[propertyName] = await query.where(primaryKey, model[foreignKey]).get()
+    model[propertyName] = await query
+      .where({ [primaryKey]: model[foreignKey] })
+      .get()
 
     return model
   }
@@ -161,7 +171,9 @@ export class ModelGenerator {
 
     // Using DB here because there is no PivotModel
     const pivotTableData = await this.DB.buildTable(pivotTableName)
-      .buildWhere(pivotLocalForeignKey, model[localPrimaryKey])
+      .buildWhere({
+        [pivotLocalForeignKey]: model[localPrimaryKey],
+      })
       .findMany()
 
     // @ts-ignore

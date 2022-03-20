@@ -7,6 +7,7 @@
  * file that was distributed with this source code.
  */
 
+import { ObjectID } from 'bson'
 import { ModelPropsRecord } from './ModelPropsRecord'
 
 /**
@@ -19,7 +20,12 @@ export type ModelPropsJson<Type> = RecursiveJson<ModelPropsRecord<Type>>
  * Else will return again ModelPropsJson for key type
  */
 export type RecursiveJson<Type> = {
-  [Key in keyof Type]: Type[Key] extends string | boolean | number | Date
+  [Key in keyof Type]: Type[Key] extends
+    | string
+    | boolean
+    | number
+    | Date
+    | ObjectID
     ? Type[Key]
     : ModelPropsJson<Type[Key]>
 }

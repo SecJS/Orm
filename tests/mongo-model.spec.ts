@@ -8,29 +8,43 @@
  */
 
 import 'reflect-metadata'
-import { Product } from './Stubs/Models/Product'
-import { UserModel } from './Stubs/Models/UserModel'
+import { MongoMemoryReplSet } from 'mongodb-memory-server'
+import { Product } from './Stubs/MongoModel/Product'
+import { UserModel } from './Stubs/MongoModel/UserModel'
 import { TestDataHandler } from './Utils/TestDataHandler'
 import { Database, DatabaseContract } from '@secjs/database'
-import { ProductDetail } from './Stubs/Models/ProductDetail'
+import { ProductDetail } from './Stubs/MongoModel/ProductDetail'
 
-describe('\n Model Class', () => {
+describe('\n Mongo Model Class', () => {
+  let replset: MongoMemoryReplSet
   let DB: DatabaseContract
 
   beforeAll(async () => {
-    process.env.DB_HOST = 'localhost'
-    process.env.DB_PORT = '5433'
-    process.env.DB_DATABASE = 'postgres'
-    process.env.DB_USERNAME = 'postgres'
-    process.env.DB_PASSWORD = 'root'
+    replset = await MongoMemoryReplSet.create({
+      instanceOpts: [
+        {
+          port: 27017,
+        },
+        {
+          port: 27018,
+        },
+        {
+          port: 27019,
+        },
+      ],
+      replSet: { name: 'rs', count: 3 },
+    })
+
+    process.env.DB_HOST = 'localhost:27017,localhost:27018,localhost:27019'
+    process.env.DB_DATABASE = 'secjs-database-testing'
+    process.env.DB_USERNAME = ''
+    process.env.DB_PASSWORD = ''
     process.env.DB_FILENAME = ':memory:'
 
-    await Database.openConnections('postgres')
+    await Database.openConnections('mongo')
 
-    DB = new Database().connection('postgres')
+    DB = new Database().connection('mongo')
     TestDataHandler.setDB(DB)
-
-    await TestDataHandler.createTables()
   })
 
   beforeEach(async () => {
@@ -50,7 +64,7 @@ describe('\n Model Class', () => {
 
     expect(productJson.user).toBeFalsy()
     expect(productJson.productDetails).toBeFalsy()
-    expect(productJson.id).toBe(4)
+    expect(productJson.id).toBeTruthy()
     // Should be five because of persistOnly property and defaultValue
     expect(productJson.quantity).toBe(5)
     expect(productJson.name).toBe('Macbook Pro 2020')
@@ -73,7 +87,7 @@ describe('\n Model Class', () => {
 
     expect(productJson.user).toBeFalsy()
     expect(productJson.productDetails).toBeFalsy()
-    expect(productJson.id).toBe(8)
+    expect(productJson.id).toBeTruthy()
     // Should be five because of persistOnly property and defaultValue
     expect(productJson.quantity).toBe(5)
     expect(productJson.name).toBe('Macbook Pro 2021')
@@ -124,15 +138,15 @@ describe('\n Model Class', () => {
 
     const productJson = product.toJSON()
 
-    expect(productJson.id).toBe(1)
-    expect(productJson.userModelId).toBe(1)
+    expect(productJson.id).toBeTruthy()
+    expect(productJson.userModelId).toBeTruthy()
     expect(productJson.name).toBe('iPhone 10')
-    expect(productJson.user.idPrimary).toBe(1)
+    expect(productJson.user.idPrimary).toBeTruthy()
     expect(productJson.user.name).toBe('Victor')
     expect(productJson.productDetails[0].detail).toBe('128 GB')
-    expect(productJson.productDetails[0].productModelId).toBe(1)
+    expect(productJson.productDetails[0].productModelId).toBeTruthy()
     expect(productJson.productDetails[1].detail).toBe('Black')
-    expect(productJson.productDetails[1].productModelId).toBe(1)
+    expect(productJson.productDetails[1].productModelId).toBeTruthy()
   })
 
   it('should return all data from Product model with user and productDetails included', async () => {
@@ -140,15 +154,15 @@ describe('\n Model Class', () => {
 
     const firstModelJson = models[0].toJSON()
 
-    expect(firstModelJson.id).toBe(1)
-    expect(firstModelJson.userModelId).toBe(1)
+    expect(firstModelJson.id).toBeTruthy()
+    expect(firstModelJson.userModelId).toBeTruthy()
     expect(firstModelJson.name).toBe('iPhone 10')
-    expect(firstModelJson.user.idPrimary).toBe(1)
+    expect(firstModelJson.user.idPrimary).toBeTruthy()
     expect(firstModelJson.user.name).toBe('Victor')
     expect(firstModelJson.productDetails[0].detail).toBe('128 GB')
-    expect(firstModelJson.productDetails[0].productModelId).toBe(1)
+    expect(firstModelJson.productDetails[0].productModelId).toBeTruthy()
     expect(firstModelJson.productDetails[1].detail).toBe('Black')
-    expect(firstModelJson.productDetails[1].productModelId).toBe(1)
+    expect(firstModelJson.productDetails[1].productModelId).toBeTruthy()
   })
 
   it('should return one data from Product model with user and productDetails included', async () => {
@@ -156,13 +170,13 @@ describe('\n Model Class', () => {
 
     const productJson = product.toJSON()
 
-    expect(productJson.id).toBe(1)
+    expect(productJson.id).toBeTruthy()
     expect(productJson.quantity).toBe(10)
     expect(productJson.name).toBe('iPhone 10')
-    expect(productJson.user.idPrimary).toBe(1)
+    expect(productJson.user.idPrimary).toBeTruthy()
     expect(productJson.user.name).toBe('Victor')
     expect(productJson.user.email).toBe('txsoura@gmail.com')
-    expect(productJson.productDetails[0].productModelId).toBe(1)
+    expect(productJson.productDetails[0].productModelId).toBeTruthy()
   })
 
   it('should return all data from User model with roles included', async () => {
@@ -170,15 +184,15 @@ describe('\n Model Class', () => {
 
     const userJson = user.toJSON()
 
-    expect(userJson.idPrimary).toBe(1)
+    expect(userJson.idPrimary).toBeTruthy()
     expect(userJson.name).toBe('Victor')
-    expect(userJson.roles[0].id).toBe(1)
+    expect(userJson.roles[0].id).toBeTruthy()
     expect(userJson.roles[0].name).toBe('Admin')
-    expect(userJson.roles[1].id).toBe(2)
+    expect(userJson.roles[1].id).toBeTruthy()
     expect(userJson.roles[1].name).toBe('Owner')
-    expect(userJson.$extras[0].id).toBe(1)
-    expect(userJson.$extras[0].userId).toBe(userJson.idPrimary)
-    expect(userJson.$extras[0].roleId).toBe(1)
+    expect(userJson.$extras[0]._id).toBeTruthy()
+    expect(userJson.$extras[0].userId.toString()).toBe(userJson.idPrimary.toString())
+    expect(userJson.$extras[0].roleId).toBeTruthy()
   })
 
   it('should be able to include sub relations of models', async () => {
@@ -192,15 +206,15 @@ describe('\n Model Class', () => {
     const userJson = product.user.toJSON()
 
     expect(product.productDetails.length).toBe(2)
-    expect(userJson.idPrimary).toBe(1)
+    expect(userJson.idPrimary).toBeTruthy()
     expect(userJson.name).toBe('Victor')
-    expect(userJson.roles[0].id).toBe(1)
+    expect(userJson.roles[0].id).toBeTruthy()
     expect(userJson.roles[0].name).toBe('Admin')
-    expect(userJson.roles[1].id).toBe(2)
+    expect(userJson.roles[1].id).toBeTruthy()
     expect(userJson.roles[1].name).toBe('Owner')
-    expect(userJson.$extras[0].id).toBe(1)
-    expect(userJson.$extras[0].userId).toBe(userJson.idPrimary)
-    expect(userJson.$extras[0].roleId).toBe(1)
+    expect(userJson.$extras[0]._id).toBeTruthy()
+    expect(userJson.$extras[0].userId.toString()).toBe(userJson.idPrimary.toString())
+    expect(userJson.$extras[0].roleId).toBeTruthy()
   })
 
   it('should get all data from Product only where quantity is 10 and orderBy name', async () => {
@@ -214,7 +228,7 @@ describe('\n Model Class', () => {
     const products = await Product.query().skip(0).limit(1).getMany()
 
     expect(products.length).toBe(1)
-    expect(products[0].id).toBe(1)
+    expect(products[0].id).toBeTruthy()
     expect(products[0].name).toBe('iPhone 10')
   })
 
@@ -222,7 +236,7 @@ describe('\n Model Class', () => {
     const products = await Product.forPage(0, 1)
 
     expect(products.length).toBe(1)
-    expect(products[0].id).toBe(1)
+    expect(products[0].id).toBeTruthy()
     expect(products[0].name).toBe('iPhone 10')
   })
 
@@ -239,16 +253,16 @@ describe('\n Model Class', () => {
     expect(links.next).toBe('/products?page=1&limit=1')
     expect(links.last).toBe('/products?page=42&limit=1')
     expect(data.length).toBe(1)
-    expect(data[0].id).toBe(1)
+    expect(data[0].id).toBeTruthy()
     expect(data[0].name).toBe('iPhone 10')
   })
 
   it('should be able to create custom method using the query builder inside the model', async () => {
-    const user = await UserModel.getOneWithRoles(1)
+    const user = await UserModel.getOneWithRoles((await UserModel.find()).idPrimary)
 
     const userJson = user.toJSON()
 
-    expect(userJson.idPrimary).toBe(1)
+    expect(userJson.idPrimary).toBeTruthy()
     expect(userJson.name).toBe('Victor')
     expect(userJson.email).toBe('txsoura@gmail.com')
     expect(userJson.createdAt).toBeFalsy()
@@ -295,7 +309,7 @@ describe('\n Model Class', () => {
 
     expect(await factory.assertCount(61)).toBeTruthy()
     expect(await factory.assertHas({ id: product.id })).toBeTruthy()
-    expect(await factory.assertMissing({ id: 9999 })).toBeTruthy()
+    expect(await factory.assertMissing({ name: 'not-existent-name' })).toBeTruthy()
   })
 
   it('should be able to create callbacks for includes queries', async () => {
@@ -314,6 +328,8 @@ describe('\n Model Class', () => {
   afterAll(async () => {
     await TestDataHandler.dropTables()
 
-    await Database.closeConnections('postgres')
+    await Database.closeConnections('mongo')
+
+    await replset.stop()
   })
 })

@@ -7,6 +7,7 @@
  * file that was distributed with this source code.
  */
 
+import 'reflect-metadata'
 import { ColumnOptions } from '../Contracts/ColumnOptions'
 
 /**
@@ -16,12 +17,15 @@ export function Column(options?: ColumnOptions): PropertyDecorator {
   return (target: any, propertyKey: string | symbol) => {
     const Model = target.constructor
 
+    const type = Reflect.getMetadata('design:type', target, propertyKey)
+
     options = Object.assign(
       {},
       {
         isPrimary: false,
         columnName: propertyKey,
         defaultValue: null,
+        propertyType: type,
         propertyName: String(propertyKey),
         isCreatedAt: false,
         isUpdatedAt: false,
