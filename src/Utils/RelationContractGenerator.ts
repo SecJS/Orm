@@ -38,6 +38,7 @@ export class RelationContractGenerator {
   hasOne(prop: string, opts: HasOneOptions): HasOneContract {
     const defaultValues: HasOneContract = {}
 
+    defaultValues.callback = null
     defaultValues.isIncluded = false
     defaultValues.propertyName = prop
     defaultValues.model = this.RelationModel
@@ -51,6 +52,7 @@ export class RelationContractGenerator {
   hasMany(prop: string, opts: HasManyOptions): HasManyContract {
     const defaultValues: HasManyContract = {}
 
+    defaultValues.callback = null
     defaultValues.isIncluded = false
     defaultValues.propertyName = prop
     defaultValues.model = this.RelationModel
@@ -64,6 +66,7 @@ export class RelationContractGenerator {
   belongsTo(prop: string, opts: BelongsToOptions): BelongsToContract {
     const defaultValues: BelongsToContract = {}
 
+    defaultValues.callback = null
     defaultValues.isIncluded = false
     defaultValues.propertyName = prop
     defaultValues.model = this.RelationModel
@@ -81,6 +84,7 @@ export class RelationContractGenerator {
   ): ManyToManyContract {
     const defaultValues: ManyToManyContract = {}
 
+    defaultValues.callback = null
     defaultValues.isIncluded = false
     defaultValues.propertyName = prop
     defaultValues.model = this.RelationModel

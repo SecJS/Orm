@@ -294,7 +294,9 @@ export abstract class Model {
   /**
    * Load a relation from your Model
    */
-  async load(...relationsName: ModelRelationsKeys<this>[]): Promise<this> {
+  async load(
+    ...relationsName: string[] | ModelRelationsKeys<this>[]
+  ): Promise<this> {
     const query = this.class
       .query()
       .where({ [this.class.primaryKey]: this[this.class.primaryKey] })

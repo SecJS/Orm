@@ -266,19 +266,47 @@ export class ModelQueryBuilder<Class extends typeof Model> {
     return this
   }
 
-  includes(relationName: ModelRelationsKeys<InstanceType<Class>>): this {
-    const relation = this.Model.relations.find(
-      relation => relation.propertyName === relationName,
-    )
+  includes(
+    relationName: string | ModelRelationsKeys<InstanceType<Class>>,
+    callback?: (query: ModelQueryBuilder<any>) => void | Promise<void>,
+  ): this {
+    const findRelationAndInclude = (
+      name: string,
+      Model: any,
+      isSubRelation = false,
+    ) => {
+      let subRelations: string = null
 
-    if (!relation) {
-      throw new NotFoundRelationException(relationName, this.constructor.name)
+      if (name.includes('.')) {
+        const relationNameSplit = name.split('.')
+
+        name = relationNameSplit[0]
+        relationNameSplit.shift()
+
+        if (relationNameSplit.length) {
+          subRelations = relationNameSplit.join('.')
+        }
+      }
+
+      const relation = Model.relations.find(r => r.propertyName === name)
+
+      if (!relation) {
+        throw new NotFoundRelationException(relationName, this.constructor.name)
+      }
+
+      relation.isIncluded = true
+
+      if (callback && !isSubRelation) relation.callback = callback
+
+      const index = Model.relations.indexOf(relation)
+      Model.relations[index] = relation
+
+      if (subRelations) {
+        findRelationAndInclude(subRelations, relation.model(), true)
+      }
     }
 
-    relation.isIncluded = true
-
-    const index = this.Model.relations.indexOf(relation)
-    this.Model.relations[index] = relation
+    findRelationAndInclude(relationName as string, this.Model)
 
     return this
   }

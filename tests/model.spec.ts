@@ -174,10 +174,32 @@ describe('\n Model Class', () => {
     expect(userJson.$extras[0].roleId).toBe(1)
   })
 
+  it('should be able to include sub relations of models', async () => {
+    const product = await Product.query()
+      .includes('productDetails')
+      .includes('user', query => {
+        query.includes('roles')
+      })
+      .get()
+
+    const userJson = product.user.toJSON()
+
+    expect(product.productDetails.length).toBe(2)
+    expect(userJson.idPrimary).toBe(1)
+    expect(userJson.name).toBe('Victor')
+    expect(userJson.roles[0].id).toBe(1)
+    expect(userJson.roles[0].name).toBe('Admin')
+    expect(userJson.roles[1].id).toBe(2)
+    expect(userJson.roles[1].name).toBe('Owner')
+    expect(userJson.$extras[0].id).toBe(1)
+    expect(userJson.$extras[0].userId).toBe(userJson.idPrimary)
+    expect(userJson.$extras[0].roleId).toBe(1)
+  })
+
   it('should get all data from Product only where quantity is 10 and orderBy name', async () => {
     const products = await Product.query().where({ quantity: 10 }).orderBy('name', 'desc').getMany()
 
-    expect(products.length).toBe(18)
+    expect(products.length).toBe(20)
     expect(products[0].name).toBe('iPhone 11')
   })
 
@@ -201,14 +223,14 @@ describe('\n Model Class', () => {
     const { meta, links, data } = await Product.paginate(0, 1, '/products')
 
     expect(meta.itemCount).toBe(1)
-    expect(meta.totalItems).toBe(39)
-    expect(meta.totalPages).toBe(39)
+    expect(meta.totalItems).toBe(42)
+    expect(meta.totalPages).toBe(42)
     expect(meta.currentPage).toBe(0)
     expect(meta.itemsPerPage).toBe(1)
     expect(links.first).toBe('/products?limit=1')
     expect(links.previous).toBe('/products?page=0&limit=1')
     expect(links.next).toBe('/products?page=1&limit=1')
-    expect(links.last).toBe('/products?page=39&limit=1')
+    expect(links.last).toBe('/products?page=42&limit=1')
     expect(data.length).toBe(1)
     expect(data[0].id).toBe(1)
     expect(data[0].name).toBe('iPhone 10')
@@ -247,7 +269,7 @@ describe('\n Model Class', () => {
   it('should be able to create definitions of products', async () => {
     const factory = Product.factory()
 
-    expect(await factory.assertCount(48)).toBeTruthy()
+    expect(await factory.assertCount(51)).toBeTruthy()
 
     const products = await factory.count(10).create<Product[]>()
     const product = products[0]
@@ -264,9 +286,22 @@ describe('\n Model Class', () => {
     // @ts-ignore
     expect(product.userModelId instanceof Promise).toBeFalsy()
 
-    expect(await factory.assertCount(58)).toBeTruthy()
+    expect(await factory.assertCount(61)).toBeTruthy()
     expect(await factory.assertHas({ id: product.id })).toBeTruthy()
     expect(await factory.assertMissing({ id: 9999 })).toBeTruthy()
+  })
+
+  it('should be able to create callbacks for includes queries', async () => {
+    const product = await Product.query()
+      .includes('user')
+      .includes('productDetails', query => {
+        query.where({ detail: 'Black' })
+      })
+      .get()
+
+    expect(product.user).toBeTruthy()
+    expect(product.productDetails.length).toBe(1)
+    expect(product.productDetails[0].detail).toBe('Black')
   })
 
   afterAll(async () => {

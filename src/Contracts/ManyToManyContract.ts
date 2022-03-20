@@ -9,9 +9,11 @@
 
 import { Model } from '../Model'
 import { RelationENUM } from '../Enums/RelationENUM'
+import { ModelQueryBuilder } from '../Utils/ModelQueryBuilder'
 
 export interface ManyToManyContract {
   model?: () => typeof Model
+  callback?: (query: ModelQueryBuilder<any>) => Promise<void>
   isIncluded?: boolean
   propertyName?: string
   relationType?: RelationENUM.MANY_TO_MANY

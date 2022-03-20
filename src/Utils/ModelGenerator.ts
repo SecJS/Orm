@@ -94,6 +94,9 @@ export class ModelGenerator {
     const propertyName = relation.propertyName
     const query = new ModelQueryBuilder(RelationModel, this.DB)
 
+    // Execute client callback if it exists
+    if (relation.callback) await relation.callback(query)
+
     model[propertyName] = await query.where(foreignKey, model[primaryKey]).get()
 
     return model
@@ -108,6 +111,9 @@ export class ModelGenerator {
     const foreignKey = relation.foreignKey
     const propertyName = relation.propertyName
     const query = new ModelQueryBuilder(RelationModel, this.DB)
+
+    // Execute client callback if it exists
+    if (relation.callback) await relation.callback(query)
 
     model[propertyName] = await query
       .where(foreignKey, model[primaryKey])
@@ -125,6 +131,9 @@ export class ModelGenerator {
     const foreignKey = relation.foreignKey
     const propertyName = relation.propertyName
     const query = new ModelQueryBuilder(RelationModel, this.DB)
+
+    // Execute client callback if it exists
+    if (relation.callback) await relation.callback(query)
 
     model[propertyName] = await query.where(primaryKey, model[foreignKey]).get()
 
@@ -162,6 +171,9 @@ export class ModelGenerator {
 
     // Set DB table to RelationModel again
     this.DB.buildTable(RelationModel.table)
+
+    // Execute client callback if it exists
+    if (relation.callback) await relation.callback(query)
 
     model[propertyName] = await query
       // @ts-ignore

@@ -9,9 +9,11 @@
 
 import { Model } from '../Model'
 import { RelationENUM } from '../Enums/RelationENUM'
+import { ModelQueryBuilder } from '../Utils/ModelQueryBuilder'
 
 export interface HasOneContract {
   model?: () => typeof Model
+  callback?: (query: ModelQueryBuilder<any>) => Promise<void>
   primaryKey?: string
   foreignKey?: string
   isIncluded?: boolean

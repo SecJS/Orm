@@ -300,6 +300,30 @@ export class Role extends Model {
 }
 ```
 
+#### ProductDetail Model
+
+```ts
+import { Product } from './Product'
+import { Model, Column, BelongsTo } from '@secjs/orm'
+
+export class ProductDetail extends Model {
+  static persistOnly = ['detail']
+
+  @Column()
+  public id: number
+
+  @Column()
+  public detail: string
+
+  // The FK
+  @Column()
+  public productId: number
+
+  @BelongsTo(() => Product)
+  public product: Product
+}
+```
+
 #### Get relationships using load and query builder
 
 > We can use load instance method to get the relations from User
@@ -307,11 +331,12 @@ export class Role extends Model {
 ```ts
 const user = await User.find()
 
-// Load all roles and products  from User
-await user.load('roles', 'products')
+// Load roles and products with productDetails from User
+await user.load('roles', 'products.productDetails')
 
 console.log(user.roles[0] instanceof Role) // true
 console.log(user.products[0] instanceof Product) // true
+console.log(user.products[0].productDetails[0] instanceof ProductDetail) // true
 ```
 
 > But we can use query builder from User too
@@ -320,11 +345,15 @@ console.log(user.products[0] instanceof Product) // true
 const user = await User
   .query()
   .includes('roles')
-  .includes('products')
+  // Sub query
+  .includes('products', async (query) => {
+    query.orderBy('detail', 'asc').includes('productDetails')
+  })
   .get()
 
 console.log(user.roles[0] instanceof Role) // true
 console.log(user.products[0] instanceof Product) // true
+console.log(user.products[0].productDetails[0] instanceof ProductDetail) // true
 ```
 
 > If you have mapped right your models with HasMany and BelongsTo you can also take the user from Product model. Example using paginate method
