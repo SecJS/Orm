@@ -10,6 +10,11 @@
 import { ModelPropsRecord } from './ModelPropsRecord'
 
 /**
+ * Json from generic Type properties
+ */
+export type ModelPropsJson<Type> = RecursiveJson<ModelPropsRecord<Type>>
+
+/**
  * Return the key type if extends string | boolean | number | Date.
  * Else will return again ModelPropsJson for key type
  */
@@ -18,8 +23,3 @@ export type RecursiveJson<Type> = {
     ? Type[Key]
     : ModelPropsJson<Type[Key]>
 }
-
-/**
- * Json from generic Type properties
- */
-export type ModelPropsJson<Type> = RecursiveJson<ModelPropsRecord<Type>>

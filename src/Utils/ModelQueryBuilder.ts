@@ -133,8 +133,6 @@ export class ModelQueryBuilder<Class extends typeof Model> {
       // Set the default value of the column only if it does not exist in createObject, and it's not a PK
       if (!c.isPrimary && !createObject[c.columnName]) {
         createObject[c.columnName] = c.defaultValue
-
-        return
       }
     })
 
@@ -175,8 +173,6 @@ export class ModelQueryBuilder<Class extends typeof Model> {
       // Set updatedAt only if it does not exist in updateObject
       if (c.isUpdatedAt && !updateObject[c.columnName]) {
         updateObject[c.columnName] = new Date()
-
-        return
       }
     })
 
@@ -334,7 +330,7 @@ export class ModelQueryBuilder<Class extends typeof Model> {
     }
 
     if (Is.Object(statement)) {
-      let newStatement: any = {}
+      const newStatement: any = {}
 
       Object.keys(statement).forEach(key => {
         newStatement[reverseDictionary[key] || key] = statement[key]
@@ -370,7 +366,7 @@ export class ModelQueryBuilder<Class extends typeof Model> {
     }
 
     if (Is.Object(statement)) {
-      let newStatement: any = {}
+      const newStatement: any = {}
 
       Object.keys(statement).forEach(key => {
         newStatement[reverseDictionary[key] || key] = statement[key]
@@ -406,7 +402,7 @@ export class ModelQueryBuilder<Class extends typeof Model> {
     }
 
     if (Is.Object(statement)) {
-      let newStatement: any = {}
+      const newStatement: any = {}
 
       Object.keys(statement).forEach(key => {
         newStatement[reverseDictionary[key] || key] = statement[key]
@@ -442,7 +438,7 @@ export class ModelQueryBuilder<Class extends typeof Model> {
     }
 
     if (Is.Object(statement)) {
-      let newStatement: any = {}
+      const newStatement: any = {}
 
       Object.keys(statement).forEach(key => {
         newStatement[reverseDictionary[key] || key] = statement[key]

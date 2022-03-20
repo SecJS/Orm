@@ -18,7 +18,7 @@ export class ModelFactory<Class extends typeof Model> {
   private readonly definition: () => Promise<any>
   private readonly returning: string
 
-  private _count: number = 1
+  private _count = 1
 
   constructor(
     model: typeof Model,
@@ -134,8 +134,6 @@ export class ModelFactory<Class extends typeof Model> {
 
       if (column.isPrimary) {
         data[column.propertyName] = Number.randomIntFromInterval(0, 100000)
-
-        return
       }
     })
 
