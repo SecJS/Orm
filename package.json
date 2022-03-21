@@ -1,6 +1,6 @@
 {
   "name": "@secjs/orm",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Handle your application models in Node.js. Built on top of @secjs/database.",
   "license": "MIT",
   "author": "João Lenon <lenon@secjs.com.br>",
@@ -163,6 +163,6 @@
   },
   "dependencies": {
     "@faker-js/faker": "6.0.0",
-    "@secjs/database": "1.1.4"
+    "@secjs/database": "1.1.5"
   }
 }
