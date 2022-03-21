@@ -44,6 +44,8 @@ export class ModelGenerator {
       const columnDictionary = SubClassModel.columnDictionary
 
       Object.keys(data).forEach(key => {
+        if (key === '__v') return
+
         if (!columnDictionary[key]) {
           throw new NotMappedColumnException(key, SubClassModel.name)
         }
